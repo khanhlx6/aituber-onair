@@ -1,8 +1,12 @@
 import type { PiperStatus } from '../hooks/useTts';
+import { type UiLanguage, getStrings } from '../lib/i18n';
 
 export type VoiceMode = 'waiting' | 'web' | 'piper';
 
 interface VoiceStageProps {
+  lang: UiLanguage;
+  /** False when the Miko voice cannot speak the UI language (it is Japanese-only) */
+  mikoVoice: boolean;
   mode: VoiceMode;
   piperStatus: PiperStatus;
   /** 0..1 while the voice files download */
@@ -19,6 +23,8 @@ interface VoiceStageProps {
  * developers, so it names the parts at work.
  */
 export function VoiceStage({
+  lang,
+  mikoVoice,
   mode,
   piperStatus,
   piperProgress,
@@ -27,6 +33,32 @@ export function VoiceStage({
   onUseWebSpeech,
   onUsePiper,
 }: VoiceStageProps) {
+  const strings = getStrings(lang);
+
+  const browserPill = (subtitle: string) => (
+    <div className="voice-pill">
+      <span className="voice-icon" aria-hidden="true">
+        ♪
+      </span>
+      <span>
+        {strings.voice.currentVoice}{' '}
+        <strong>{strings.voice.browserName}</strong>
+        <small>{subtitle}</small>
+      </span>
+    </div>
+  );
+
+  // Languages without the Miko voice (Japanese-only model) use the browser
+  // voice outright; there is nothing to prepare or switch to.
+  if (!mikoVoice) {
+    return (
+      <div className="voice-stage">
+        {browserPill(strings.voice.browserSub)}
+        <p className="voice-progress-text">{strings.voice.webOnlyNote}</p>
+      </div>
+    );
+  }
+
   if (mode === 'piper') {
     return (
       <div className="voice-stage">
@@ -37,13 +69,14 @@ export function VoiceStage({
             ✦
           </span>
           <span>
-            いまの声: <strong>ミコ</strong>
-            <small>piper-plus のモデルをブラウザ内で合成</small>
+            {strings.voice.currentVoice}{' '}
+            <strong>{strings.voice.mikoName}</strong>
+            <small>{strings.voice.mikoSub}</small>
           </span>
         </div>
         {justSwitched && (
           <p className="voice-toast" role="status">
-            準備できたので、ミコの声に切り替わりました
+            {strings.voice.switchedToast}
           </p>
         )}
       </div>
@@ -58,12 +91,9 @@ export function VoiceStage({
         <div className="voice-progress" role="status">
           <span className="voice-progress-text">
             {percent === null || percent >= 100
-              ? 'ミコの声を読み込んでいます… あと少しです'
-              : `ミコの声をダウンロード中… ${percent}%`}
-            <small>
-              モデル 38MB、日本語の読み上げ辞書 102MB、実行環境 12MB
-              の合計約150MB をブラウザに置きます
-            </small>
+              ? strings.voice.loadingTail
+              : strings.voice.downloadPct(percent)}
+            <small>{strings.voice.downloadNote}</small>
           </span>
           <span
             className={`voice-progress-bar${percent === null || percent >= 100 ? ' voice-progress-bar-busy' : ''}`}
@@ -81,7 +111,7 @@ export function VoiceStage({
             className="link voice-link"
             onClick={onUseWebSpeech}
           >
-            待たずにブラウザ標準の声で話す（口の動きは合いません）
+            {strings.voice.useWebNow}
           </button>
         ) : (
           <div className="voice-pill">
@@ -89,10 +119,9 @@ export function VoiceStage({
               ♪
             </span>
             <span>
-              いまの声: <strong>ブラウザ標準</strong>
-              <small>
-                Web Speech API。準備ができたらミコの声に切り替わります
-              </small>
+              {strings.voice.currentVoice}{' '}
+              <strong>{strings.voice.browserName}</strong>
+              <small>{strings.voice.browserSubSwitching}</small>
             </span>
           </div>
         )}
@@ -103,17 +132,9 @@ export function VoiceStage({
   if (piperStatus === 'ready') {
     return (
       <div className="voice-stage">
-        <div className="voice-pill">
-          <span className="voice-icon" aria-hidden="true">
-            ♪
-          </span>
-          <span>
-            いまの声: <strong>ブラウザ標準</strong>
-            <small>Web Speech API</small>
-          </span>
-        </div>
+        {browserPill(strings.voice.browserSub)}
         <button type="button" className="link voice-link" onClick={onUsePiper}>
-          ミコの声に切り替える
+          {strings.voice.switchToMiko}
         </button>
       </div>
     );
@@ -124,30 +145,21 @@ export function VoiceStage({
     <div className="voice-stage">
       {piperStatus === 'idle' && (
         <button type="button" className="prepare" onClick={onPrepare}>
-          ミコの声を準備する（モデル 38MB、辞書 102MB、実行環境 12MB
-          の合計約150MB）
+          {strings.voice.prepareMiko}
         </button>
       )}
       {piperStatus === 'error' && (
-        <p className="voice-progress-text">ミコの声の準備に失敗しました。</p>
+        <p className="voice-progress-text">{strings.voice.prepareFailed}</p>
       )}
       {mode === 'web' ? (
-        <div className="voice-pill">
-          <span className="voice-icon" aria-hidden="true">
-            ♪
-          </span>
-          <span>
-            いまの声: <strong>ブラウザ標準</strong>
-            <small>Web Speech API</small>
-          </span>
-        </div>
+        browserPill(strings.voice.browserSub)
       ) : (
         <button
           type="button"
           className="link voice-link"
           onClick={onUseWebSpeech}
         >
-          ブラウザ標準の声で話す（口の動きは合いません）
+          {strings.voice.useWebAlt}
         </button>
       )}
     </div>

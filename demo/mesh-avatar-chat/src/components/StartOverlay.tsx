@@ -1,33 +1,17 @@
 import { useState } from 'react';
+import { type UiLanguage, getStrings, providerLabel } from '../lib/i18n';
 import { type Provider, getProvider } from '../lib/providers';
 
 interface StartOverlayProps {
+  lang: UiLanguage;
   /** Provider saved in this browser; decides where messages go */
   provider: Provider;
   onStart: () => void;
 }
 
-const STEPS = [
-  {
-    title: 'ミコの声を準備します',
-    detail:
-      '「はじめる」で、ミコの声のモデル（38MB）、日本語の読み上げ辞書（102MB）、piper-plus の実行環境（12MB）をブラウザに読み込みます。合計で約150MB です。',
-  },
-  {
-    title: '準備できたら、ミコが挨拶します',
-    detail: '会話も声も口の動きも、ぜんぶブラウザの中で動きます。',
-  },
-  {
-    title: '待てないときは、ブラウザ標準の声で',
-    detail:
-      'Web Speech API ですぐ話せますが、口の動きは合いません。準備ができたらミコの声に切り替わります。',
-  },
-];
-
 interface Tech {
   id: string;
   name: string;
-  summary: string;
   code: string;
 }
 
@@ -35,7 +19,6 @@ const TECH: Tech[] = [
   {
     id: 'core',
     name: '@aituber-onair/core',
-    summary: 'LLM と会話し、返答の感情タグを取り出す',
     code: `const core = new AITuberOnAirCore({
   chatProvider: 'gemini-nano',
   chatOptions: { systemPrompt },
@@ -48,7 +31,6 @@ await core.processChat('自己紹介して');`,
   {
     id: 'voice',
     name: '@aituber-onair/voice',
-    summary: 'Web Speech も piper-plus も同じ形で呼ぶ',
     code: `const piper = new PiperPlusEngine();
 piper.setAssets({
   basePath: '/piper/',
@@ -61,7 +43,6 @@ const wav = await piper.fetchAudio({ style: 'talk', message: 'こんにちは' }
   {
     id: 'mesh',
     name: 'mesh-avatar',
-    summary: '一枚のイラストをメッシュ変形で動かす',
     code: `const avatar = await loadMeshAvatar(canvas, '/avatar/miko-qipao.mavatar');
 avatar.setSpeaking(true);
 avatar.setVoiceLevel(0.6); // 音量に合わせて口が動く
@@ -70,7 +51,6 @@ avatar.setEmotion('happy'); // 表情とモーション`,
   {
     id: 'nano',
     name: 'Gemini Nano',
-    summary: 'Chrome 内蔵の LLM。キーもサーバーも不要',
     code: `const session = await LanguageModel.create({
   expectedInputs: [{ type: 'text', languages: ['ja'] }],
 });
@@ -79,11 +59,13 @@ const reply = await session.prompt('自己紹介して');`,
 ];
 
 /** First screen. The tap that starts the demo also unlocks audio playback. */
-export function StartOverlay({ provider, onStart }: StartOverlayProps) {
+export function StartOverlay({ lang, provider, onStart }: StartOverlayProps) {
+  const strings = getStrings(lang);
   const info = getProvider(provider);
   const external = info.auth !== 'none';
   const [active, setActive] = useState<Tech | null>(null);
   const [open, setOpen] = useState(false);
+  const techSummaries = strings.start.techSummaries;
 
   return (
     <div
@@ -94,13 +76,11 @@ export function StartOverlay({ provider, onStart }: StartOverlayProps) {
     >
       <div className="overlay-card">
         <p className="overlay-eyebrow">AITuber OnAir</p>
-        <h1 id="start-title">ミコと話してみよう</h1>
-        <p className="overlay-text">
-          ブラウザだけで動く AI キャラクターのデモです。
-        </p>
+        <h1 id="start-title">{strings.start.title}</h1>
+        <p className="overlay-text">{strings.start.lead}</p>
 
         <button type="button" className="start" onClick={onStart}>
-          はじめる
+          {strings.start.start}
         </button>
 
         <button
@@ -113,24 +93,22 @@ export function StartOverlay({ provider, onStart }: StartOverlayProps) {
           <span className="how-chevron" aria-hidden="true">
             ›
           </span>
-          どうやって動いているの？
+          {strings.start.howToggle}
         </button>
 
         {open && (
           <div id="how-it-works" className="how-body">
             <p className="how-lead">
-              Chrome 内蔵の Gemini Nano と piper-plus
-              を組み合わせると、サーバーなしでブラウザだけで完結する AITuber・AI
-              キャラクターのチャット体験を提供できます。
-              <br />
-              このページはその実例で、会話も声も口の動きも、ぜんぶブラウザの中で動いています。
-              <br />
-              設定で外部の API（OpenAI など）を選んだ場合は、会話の内容がその
-              API に送られます。
+              {strings.start.howLead.map((line, index) => (
+                <span key={line}>
+                  {index > 0 && <br />}
+                  {line}
+                </span>
+              ))}
             </p>
 
-            <ol className="steps" aria-label="声の流れ">
-              {STEPS.map((step, index) => (
+            <ol className="steps" aria-label={strings.start.stepsAria}>
+              {strings.start.steps.map((step, index) => (
                 <li
                   key={step.title}
                   className="step"
@@ -147,10 +125,8 @@ export function StartOverlay({ provider, onStart }: StartOverlayProps) {
               ))}
             </ol>
 
-            <section className="tech" aria-label="使っている技術">
-              <p className="tech-heading">
-                使っている技術（触れるとコード例が出ます）
-              </p>
+            <section className="tech" aria-label={strings.start.techAria}>
+              <p className="tech-heading">{strings.start.techHeading}</p>
               <ul className="tech-list" onMouseLeave={() => setActive(null)}>
                 {TECH.map((tech, index) => (
                   <li key={tech.id}>
@@ -164,7 +140,9 @@ export function StartOverlay({ provider, onStart }: StartOverlayProps) {
                       aria-pressed={active?.id === tech.id}
                     >
                       <code>{tech.name}</code>
-                      <span>{tech.summary}</span>
+                      <span>
+                        {techSummaries[tech.id as keyof typeof techSummaries]}
+                      </span>
                     </button>
                   </li>
                 ))}
@@ -175,9 +153,7 @@ export function StartOverlay({ provider, onStart }: StartOverlayProps) {
                     <code>{active.code}</code>
                   </pre>
                 ) : (
-                  <p className="tech-hint">
-                    どのパーツがどこを担当しているか、数行のコードで見られます。
-                  </p>
+                  <p className="tech-hint">{strings.start.techHint}</p>
                 )}
               </div>
             </section>
@@ -185,10 +161,10 @@ export function StartOverlay({ provider, onStart }: StartOverlayProps) {
         )}
 
         <p className="overlay-note">
-          音が出ます。
+          {strings.start.noteSound}
           {external
-            ? `会話に使う AI に ${info.label} を選んでいるため、メッセージは ${info.label} の API に送られます。`
-            : '会話はこのブラウザの中だけで処理されます。'}
+            ? strings.start.noteExternal(providerLabel(provider, lang))
+            : strings.start.noteLocal}
         </p>
       </div>
     </div>

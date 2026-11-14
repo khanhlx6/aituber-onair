@@ -29,6 +29,10 @@ published to GitHub Pages.
   instead.
 - Avatar: `@aituber-onair/core` handles the conversation and emotion tags, and
   the `mesh-avatar` runtime animates the `.mavatar` file.
+- Language: the interface and Miko's conversation support Japanese and
+  Vietnamese (Settings → 言語 / Ngôn ngữ, auto-detected from the browser).
+  The Miko voice model speaks Japanese only; other languages use the browser
+  voice (Web Speech API).
 
 ## Run locally
 

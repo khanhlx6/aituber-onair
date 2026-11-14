@@ -7,6 +7,12 @@ import {
 } from '../hooks/useSettings';
 import type { PiperStatus } from '../hooks/useTts';
 import {
+  type UiLanguage,
+  UI_LANGUAGES,
+  getStrings,
+  providerLabel,
+} from '../lib/i18n';
+import {
   type KeyedProvider,
   PROVIDERS,
   type Provider,
@@ -15,6 +21,7 @@ import {
 } from '../lib/providers';
 
 interface SettingsSheetProps {
+  lang: UiLanguage;
   settings: DemoSettings;
   nano: {
     status: GeminiNanoStatus;
@@ -23,6 +30,7 @@ interface SettingsSheetProps {
   };
   piperStatus: PiperStatus;
   voices: SpeechSynthesisVoice[];
+  onUpdateUi: (patch: Partial<DemoSettings['ui']>) => void;
   onUpdateLlm: (patch: Partial<DemoSettings['llm']>) => void;
   onUpdateTts: (patch: Partial<DemoSettings['tts']>) => void;
   onSetApiKey: (provider: KeyedProvider, key: string) => void;
@@ -38,30 +46,13 @@ interface SettingsSheetProps {
   onClose: () => void;
 }
 
-function nanoLabel(status: GeminiNanoStatus, progress: number | null): string {
-  switch (status) {
-    case 'available':
-      return '使えます';
-    case 'downloadable':
-      return 'モデルの準備が必要です';
-    case 'downloading':
-      return progress === null
-        ? 'ダウンロード中…'
-        : `ダウンロード中… ${progress}%`;
-    case 'checking':
-      return '確認中…';
-    case 'error':
-      return '状態を確認できませんでした';
-    default:
-      return 'このブラウザでは使えません（Chrome 138 以降で chrome://flags の Prompt API を有効にしてください）';
-  }
-}
-
 export function SettingsSheet({
+  lang,
   settings,
   nano,
   piperStatus,
   voices,
+  onUpdateUi,
   onUpdateLlm,
   onUpdateTts,
   onSetApiKey,
@@ -72,10 +63,13 @@ export function SettingsSheet({
   onClearVoiceCache,
   onClose,
 }: SettingsSheetProps) {
+  const strings = getStrings(lang);
   const [notice, setNotice] = useState('');
   const provider = settings.llm.provider;
   const info = getProvider(provider);
   const tts = settings.tts;
+  /** The Miko voice model speaks Japanese only */
+  const mikoVoice = lang === 'ja';
 
   return (
     <div className="sheet-backdrop" onClick={onClose}>
@@ -87,19 +81,35 @@ export function SettingsSheet({
         onClick={(event) => event.stopPropagation()}
       >
         <div className="sheet-head">
-          <h2 id="settings-title">設定</h2>
+          <h2 id="settings-title">{strings.settings.title}</h2>
           <button
             type="button"
             className="icon-button"
             onClick={onClose}
-            aria-label="閉じる"
+            aria-label={strings.settings.close}
           >
             ×
           </button>
         </div>
 
         <fieldset className="group">
-          <legend>会話に使う AI</legend>
+          <legend>{strings.settings.langLegend}</legend>
+          <select
+            value={lang}
+            onChange={(event) =>
+              onUpdateUi({ language: event.target.value as UiLanguage })
+            }
+          >
+            {UI_LANGUAGES.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.nativeName}
+              </option>
+            ))}
+          </select>
+        </fieldset>
+
+        <fieldset className="group">
+          <legend>{strings.settings.aiLegend}</legend>
           <select
             value={provider}
             onChange={(event) =>
@@ -108,17 +118,18 @@ export function SettingsSheet({
           >
             {PROVIDERS.map((item) => (
               <option key={item.id} value={item.id} disabled={!item.browser}>
-                {item.label}
-                {item.browser ? '' : '（ブラウザから直接は呼べません）'}
+                {providerLabel(item.id, lang)}
+                {item.browser ? '' : strings.settings.providerNoBrowser}
               </option>
             ))}
           </select>
           {info.auth === 'none' && (
             <p className="hint">
-              Gemini Nano: {nanoLabel(nano.status, nano.progress)}
+              Gemini Nano:{' '}
+              {strings.settings.nanoLabel(nano.status, nano.progress)}
               {nano.status === 'downloadable' && (
                 <button type="button" className="link" onClick={nano.prepare}>
-                  準備する
+                  {strings.settings.prepare}
                 </button>
               )}
             </p>
@@ -128,16 +139,14 @@ export function SettingsSheet({
               <input
                 type="password"
                 className="text"
-                placeholder={`${info.label} の API キー`}
+                placeholder={strings.settings.apiKeyPlaceholder(
+                  providerLabel(provider, lang),
+                )}
                 value={settings.llm.apiKeys[provider] ?? ''}
                 onChange={(event) => onSetApiKey(provider, event.target.value)}
                 autoComplete="off"
               />
-              <p className="hint">
-                各社の既定モデルを使います。メッセージと API
-                キーは、このブラウザから選んだ会社の API
-                へ直接送られます。キーはこのブラウザのローカルストレージに保存されるので、共用の端末では使わないでください。
-              </p>
+              <p className="hint">{strings.settings.apiKeyHint}</p>
             </>
           )}
           {info.auth === 'endpoint' && (
@@ -145,7 +154,7 @@ export function SettingsSheet({
               <input
                 type="url"
                 className="text"
-                placeholder="サーバー URL（例: http://localhost:11434）"
+                placeholder={strings.settings.endpointUrlPlaceholder}
                 value={settings.llm.openaiCompatible.endpoint}
                 onChange={(event) =>
                   onSetOpenaiCompatible({ endpoint: event.target.value })
@@ -155,24 +164,20 @@ export function SettingsSheet({
               <input
                 type="text"
                 className="text"
-                placeholder="モデル名（例: gemma3）"
+                placeholder={strings.settings.modelPlaceholder}
                 value={settings.llm.openaiCompatible.model}
                 onChange={(event) =>
                   onSetOpenaiCompatible({ model: event.target.value })
                 }
                 autoComplete="off"
               />
-              <p className="hint">
-                OpenAI 互換の Chat Completions API
-                を持つサーバーに、このブラウザから直接つなぎ、メッセージをそのサーバーへ送ります。サーバー側で
-                CORS の許可が必要です。
-              </p>
+              <p className="hint">{strings.settings.endpointHint}</p>
             </>
           )}
         </fieldset>
 
         <fieldset className="group">
-          <legend>声</legend>
+          <legend>{strings.settings.voiceLegend}</legend>
           <label className="radio">
             <input
               type="radio"
@@ -180,7 +185,7 @@ export function SettingsSheet({
               checked={tts.engine === 'webSpeech'}
               onChange={() => onUpdateTts({ engine: 'webSpeech' as VoiceKind })}
             />
-            ブラウザ標準（Web Speech API）
+            {strings.settings.webSpeech}
           </label>
           {tts.engine === 'webSpeech' && voices.length > 0 && (
             <select
@@ -189,7 +194,7 @@ export function SettingsSheet({
                 onUpdateTts({ webSpeechVoice: event.target.value })
               }
             >
-              <option value="">自動で選ぶ</option>
+              <option value="">{strings.settings.autoVoice}</option>
               {voices.map((item) => (
                 <option key={item.voiceURI} value={item.name}>
                   {item.name}
@@ -202,15 +207,17 @@ export function SettingsSheet({
               type="radio"
               name="voice"
               checked={tts.engine === 'piperPlus'}
-              disabled={piperStatus !== 'ready'}
+              disabled={!mikoVoice || piperStatus !== 'ready'}
               onChange={() => onUpdateTts({ engine: 'piperPlus' as VoiceKind })}
             />
-            ミコの声（piper-plus、ブラウザ内で合成）
+            {strings.settings.mikoVoice}
           </label>
-          {piperStatus === 'ready' && (
+          {!mikoVoice && <p className="hint">{strings.voice.mikoJaOnly}</p>}
+          {mikoVoice && piperStatus === 'ready' && (
             <label className="slider">
               <span>
-                ミコの声の速さ <strong>{tts.piperSpeed.toFixed(2)}×</strong>
+                {strings.settings.mikoSpeed}{' '}
+                <strong>{tts.piperSpeed.toFixed(2)}×</strong>
               </span>
               <input
                 type="range"
@@ -224,41 +231,40 @@ export function SettingsSheet({
               />
             </label>
           )}
-          {piperStatus === 'idle' && (
+          {mikoVoice && piperStatus === 'idle' && (
             <button type="button" className="link" onClick={onPreparePiper}>
-              準備する（モデル 38MB、辞書 102MB、実行環境 12MB の合計約150MB
-              をダウンロード）
+              {strings.settings.prepareMikoFull}
             </button>
           )}
-          {piperStatus === 'loading' && <p className="hint">準備中…</p>}
-          {piperStatus === 'missing' && (
-            <p className="hint">
-              このビルドには音声ファイルが含まれていません。
-            </p>
+          {mikoVoice && piperStatus === 'loading' && (
+            <p className="hint">{strings.settings.preparing}</p>
           )}
-          {piperStatus === 'error' && (
-            <p className="hint">準備に失敗しました。</p>
+          {mikoVoice && piperStatus === 'missing' && (
+            <p className="hint">{strings.settings.missing}</p>
+          )}
+          {mikoVoice && piperStatus === 'error' && (
+            <p className="hint">{strings.settings.prepareError}</p>
           )}
         </fieldset>
 
         <div className="sheet-actions">
           <button type="button" className="button-outline" onClick={onReset}>
-            会話をリセット
+            {strings.settings.resetChat}
           </button>
         </div>
 
         <fieldset className="group">
-          <legend>このブラウザに残っているデータ</legend>
+          <legend>{strings.settings.dataLegend}</legend>
           <div className="data-actions">
             <button
               type="button"
               className="button-outline button-danger"
               onClick={() => {
                 onClearStored();
-                setNotice('保存していた設定と API キーを消しました。');
+                setNotice(strings.settings.clearStoredDone);
               }}
             >
-              保存した設定と API キーを消す
+              {strings.settings.clearStored}
             </button>
             <button
               type="button"
@@ -267,19 +273,16 @@ export function SettingsSheet({
                 void onClearVoiceCache().then((removed) =>
                   setNotice(
                     removed
-                      ? 'ダウンロードした音声データを消しました。次回は再びダウンロードします。'
-                      : '消せる音声データはありませんでした。',
+                      ? strings.settings.clearVoiceDone
+                      : strings.settings.clearVoiceNone,
                   ),
                 );
               }}
             >
-              ダウンロードした音声データ（約150MB）を消す
+              {strings.settings.clearVoice}
             </button>
           </div>
-          <p className="hint">
-            設定と API キーはローカルストレージに、音声データは Cache Storage
-            に置いています。どちらもこのブラウザの中にだけあり、ここから消せます。
-          </p>
+          <p className="hint">{strings.settings.dataHint}</p>
           {notice && (
             <p className="hint notice" role="status">
               {notice}
@@ -288,7 +291,7 @@ export function SettingsSheet({
         </fieldset>
 
         <p className="credits">
-          ミコ © Yuki Shindo（AITuber OnAir）。ミコの声は
+          {strings.settings.creditsLead}
           <a
             href="https://github.com/ayutaz/piper-plus"
             target="_blank"
@@ -296,7 +299,7 @@ export function SettingsSheet({
           >
             piper-plus
           </a>
-          で学習した合成音声モデルです。
+          {strings.settings.creditsTail}
         </p>
       </div>
     </div>

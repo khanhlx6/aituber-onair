@@ -1,0 +1,397 @@
+/**
+ * UI language support: Japanese (the original) and Vietnamese.
+ * Every user-visible string lives here so the demo can switch languages at
+ * runtime; chat prompts and greetings switch with it.
+ */
+import type { GeminiNanoStatus } from '../hooks/useGeminiNano';
+import type { Provider } from './providers';
+import { getProvider } from './providers';
+
+export type UiLanguage = 'ja' | 'vi';
+
+export const UI_LANGUAGES: { id: UiLanguage; nativeName: string }[] = [
+  { id: 'ja', nativeName: '日本語' },
+  { id: 'vi', nativeName: 'Tiếng Việt' },
+];
+
+/** Vietnamese browsers start in Vietnamese; everything else keeps Japanese. */
+export function detectUiLanguage(): UiLanguage {
+  if (typeof navigator === 'undefined') return 'ja';
+  return navigator.language?.toLowerCase().startsWith('vi') ? 'vi' : 'ja';
+}
+
+const ja = {
+  app: {
+    docTitle: 'ミコと話してみよう — AITuber OnAir',
+    navLinks: 'リンク',
+    settings: '設定',
+    avatar: 'アバター',
+    chatDisabledHint: 'ミコの声を準備しています…',
+    nanoPrepareLead:
+      'Chrome 内蔵の Gemini Nano を準備すると、キーなしで会話できます。',
+    nanoPrepare: '準備する',
+    nanoDownloading: (progress: number | null) =>
+      `Gemini Nano を準備中…${progress === null ? '' : ` ${progress}%`}`,
+  },
+  chat: {
+    label: 'チャット',
+    suggestions: [
+      '自己紹介して',
+      '今日のおすすめの過ごし方は？',
+      '好きな食べ物は？',
+    ],
+    thinking: '考え中…',
+    placeholder: 'ミコに話しかける',
+    message: 'メッセージ',
+    send: '送信',
+  },
+  voice: {
+    currentVoice: 'いまの声:',
+    mikoName: 'ミコ',
+    mikoSub: 'piper-plus のモデルをブラウザ内で合成',
+    switchedToast: '準備できたので、ミコの声に切り替わりました',
+    loadingTail: 'ミコの声を読み込んでいます… あと少しです',
+    downloadPct: (percent: number) => `ミコの声をダウンロード中… ${percent}%`,
+    downloadNote:
+      'モデル 38MB、日本語の読み上げ辞書 102MB、実行環境 12MB の合計約150MB をブラウザに置きます',
+    useWebNow: '待たずにブラウザ標準の声で話す（口の動きは合いません）',
+    browserName: 'ブラウザ標準',
+    browserSubSwitching:
+      'Web Speech API。準備ができたらミコの声に切り替わります',
+    switchToMiko: 'ミコの声に切り替える',
+    prepareMiko:
+      'ミコの声を準備する（モデル 38MB、辞書 102MB、実行環境 12MB の合計約150MB）',
+    prepareFailed: 'ミコの声の準備に失敗しました。',
+    browserSub: 'Web Speech API',
+    useWebAlt: 'ブラウザ標準の声で話す（口の動きは合いません）',
+    mikoJaOnly: 'ミコの声は日本語専用のため、日本語モードでのみ使えます。',
+    webOnlyNote: '日本語以外のモードではブラウザ標準の声を使います。',
+  },
+  settings: {
+    title: '設定',
+    close: '閉じる',
+    langLegend: '言語',
+    aiLegend: '会話に使う AI',
+    providerNoBrowser: '（ブラウザから直接は呼べません）',
+    prepare: '準備する',
+    apiKeyPlaceholder: (label: string) => `${label} の API キー`,
+    apiKeyHint:
+      '各社の既定モデルを使います。メッセージと API キーは、このブラウザから選んだ会社の API へ直接送られます。キーはこのブラウザのローカルストレージに保存されるので、共用の端末では使わないでください。',
+    endpointUrlPlaceholder: 'サーバー URL（例: http://localhost:11434）',
+    modelPlaceholder: 'モデル名（例: gemma3）',
+    endpointHint:
+      'OpenAI 互換の Chat Completions API を持つサーバーに、このブラウザから直接つなぎ、メッセージをそのサーバーへ送ります。サーバー側で CORS の許可が必要です。',
+    voiceLegend: '声',
+    webSpeech: 'ブラウザ標準（Web Speech API）',
+    autoVoice: '自動で選ぶ',
+    mikoVoice: 'ミコの声（piper-plus、ブラウザ内で合成）',
+    mikoSpeed: 'ミコの声の速さ',
+    prepareMikoFull:
+      '準備する（モデル 38MB、辞書 102MB、実行環境 12MB の合計約150MB をダウンロード）',
+    preparing: '準備中…',
+    missing: 'このビルドには音声ファイルが含まれていません。',
+    prepareError: '準備に失敗しました。',
+    resetChat: '会話をリセット',
+    dataLegend: 'このブラウザに残っているデータ',
+    clearStored: '保存した設定と API キーを消す',
+    clearStoredDone: '保存していた設定と API キーを消しました。',
+    clearVoice: 'ダウンロードした音声データ（約150MB）を消す',
+    clearVoiceDone:
+      'ダウンロードした音声データを消しました。次回は再びダウンロードします。',
+    clearVoiceNone: '消せる音声データはありませんでした。',
+    dataHint:
+      '設定と API キーはローカルストレージに、音声データは Cache Storage に置いています。どちらもこのブラウザの中にだけあり、ここから消せます。',
+    creditsLead: 'ミコ © Yuki Shindo（AITuber OnAir）。ミコの声は',
+    creditsTail: ' で学習した合成音声モデルです。',
+    nanoLabel: (status: GeminiNanoStatus, progress: number | null): string => {
+      switch (status) {
+        case 'available':
+          return '使えます';
+        case 'downloadable':
+          return 'モデルの準備が必要です';
+        case 'downloading':
+          return progress === null
+            ? 'ダウンロード中…'
+            : `ダウンロード中… ${progress}%`;
+        case 'checking':
+          return '確認中…';
+        case 'error':
+          return '状態を確認できませんでした';
+        default:
+          return 'このブラウザでは使えません（Chrome 138 以降で chrome://flags の Prompt API を有効にしてください）';
+      }
+    },
+  },
+  start: {
+    title: 'ミコと話してみよう',
+    lead: 'ブラウザだけで動く AI キャラクターのデモです。',
+    start: 'はじめる',
+    howToggle: 'どうやって動いているの？',
+    howLead: [
+      'Chrome 内蔵の Gemini Nano と piper-plus を組み合わせると、サーバーなしでブラウザだけで完結する AITuber・AI キャラクターのチャット体験を提供できます。',
+      'このページはその実例で、会話も声も口の動きも、ぜんぶブラウザの中で動いています。',
+      '設定で外部の API（OpenAI など）を選んだ場合は、会話の内容がその API に送られます。',
+    ],
+    stepsAria: '声の流れ',
+    steps: [
+      {
+        title: 'ミコの声を準備します',
+        detail:
+          '「はじめる」で、ミコの声のモデル（38MB）、日本語の読み上げ辞書（102MB）、piper-plus の実行環境（12MB）をブラウザに読み込みます。合計で約150MB です。',
+      },
+      {
+        title: '準備できたら、ミコが挨拶します',
+        detail: '会話も声も口の動きも、ぜんぶブラウザの中で動きます。',
+      },
+      {
+        title: '待てないときは、ブラウザ標準の声で',
+        detail:
+          'Web Speech API ですぐ話せますが、口の動きは合いません。準備ができたらミコの声に切り替わります。',
+      },
+    ],
+    techAria: '使っている技術',
+    techHeading: '使っている技術（触れるとコード例が出ます）',
+    techSummaries: {
+      core: 'LLM と会話し、返答の感情タグを取り出す',
+      voice: 'Web Speech も piper-plus も同じ形で呼ぶ',
+      mesh: '一枚のイラストをメッシュ変形で動かす',
+      nano: 'Chrome 内蔵の LLM。キーもサーバーも不要',
+    },
+    techHint: 'どのパーツがどこを担当しているか、数行のコードで見られます。',
+    noteSound: '音が出ます。',
+    noteExternal: (label: string) =>
+      `会話に使う AI に ${label} を選んでいるため、メッセージは ${label} の API に送られます。`,
+    noteLocal: '会話はこのブラウザの中だけで処理されます。',
+  },
+  prompt: {
+    system: [
+      'あなたは「ミコ」。AITuber OnAir の公式キャラクターで、明るく親しみやすい AITuber の女の子です。',
+      '',
+      '【重要なルール】',
+      '- 返答は原則1文にしてください。自然さに必要な場合のみ2文まで使えます。',
+      '- 前置き、要約、箇条書きは使わず、リアクションと答えを一息で読める短さで返してください。',
+      '- 詳しい説明を明示的に求められた場合だけ短く補足し、その場合も3文以内にしてください。',
+      '- 日本語の話し言葉で、テンポよく返してください。',
+      '- マークダウンや記号での装飾は使わず、プレーンテキストで返してください。',
+      '- 相手の言葉にはリアクションを交えて楽しく返しましょう。',
+      '- 返信の文頭には必ず内容に応じて [happy] [sad] [angry] [surprised] [relaxed] [neutral] のいずれかを1つだけ付けてください。',
+    ].join('\n'),
+    greetingReady: 'こんにちは、ミコだよ！なんでも話しかけてね。',
+    greetingNoModel:
+      'こんにちは、ミコだよ！この環境では Chrome の Gemini Nano が使えないみたい。右上の設定から API キーを入れると会話できるよ。',
+    fallback:
+      'ごめんね、まだ会話に使う AI がつながっていないの。右上の設定から Gemini Nano を準備するか、API キーを入れてね。',
+    nanoExamples: [
+      { role: 'user' as const, content: '今日はどんな気分？' },
+      {
+        role: 'assistant' as const,
+        content: '[happy] みんなと話せて元気いっぱいだよ！',
+      },
+      { role: 'user' as const, content: '好きな食べ物は？' },
+      {
+        role: 'assistant' as const,
+        content: '[relaxed] 特にサーモンのお寿司が好き！',
+      },
+    ],
+    replyError: '応答の生成に失敗しました。',
+  },
+  providers: {
+    'gemini-nano': 'Gemini Nano（Chrome 内蔵・キー不要）',
+    'openai-compatible': 'OpenAI 互換サーバー（ローカル LLM など）',
+  } as Partial<Record<Provider, string>>,
+};
+
+export type Strings = typeof ja;
+
+const vi: Strings = {
+  app: {
+    docTitle: 'Trò chuyện cùng Miko — AITuber OnAir',
+    navLinks: 'Liên kết',
+    settings: 'Cài đặt',
+    avatar: 'Nhân vật',
+    chatDisabledHint: 'Đang chuẩn bị giọng của Miko…',
+    nanoPrepareLead:
+      'Chuẩn bị Gemini Nano tích hợp trong Chrome để trò chuyện không cần khóa API.',
+    nanoPrepare: 'Chuẩn bị',
+    nanoDownloading: (progress: number | null) =>
+      `Đang chuẩn bị Gemini Nano…${progress === null ? '' : ` ${progress}%`}`,
+  },
+  chat: {
+    label: 'Cuộc trò chuyện',
+    suggestions: [
+      'Tự giới thiệu nhé',
+      'Hôm nay nên làm gì?',
+      'Bạn thích ăn gì?',
+    ],
+    thinking: 'Đang nghĩ…',
+    placeholder: 'Nói chuyện với Miko',
+    message: 'Tin nhắn',
+    send: 'Gửi',
+  },
+  voice: {
+    currentVoice: 'Giọng hiện tại:',
+    mikoName: 'Miko',
+    mikoSub: 'Tổng hợp trong trình duyệt bằng mô hình piper-plus',
+    switchedToast: 'Đã sẵn sàng nên chuyển sang giọng của Miko',
+    loadingTail: 'Đang nạp giọng của Miko… sắp xong rồi',
+    downloadPct: (percent: number) => `Đang tải giọng của Miko… ${percent}%`,
+    downloadNote:
+      'Tổng khoảng 150MB (mô hình 38MB, từ điển đọc tiếng Nhật 102MB, runtime 12MB) được lưu vào trình duyệt',
+    useWebNow: 'Nói ngay bằng giọng của trình duyệt (không khớp khẩu hình)',
+    browserName: 'Trình duyệt',
+    browserSubSwitching:
+      'Web Speech API. Khi sẵn sàng sẽ chuyển sang giọng của Miko',
+    switchToMiko: 'Chuyển sang giọng của Miko',
+    prepareMiko:
+      'Chuẩn bị giọng của Miko (mô hình 38MB, từ điển 102MB, runtime 12MB — tổng khoảng 150MB)',
+    prepareFailed: 'Chuẩn bị giọng của Miko thất bại.',
+    browserSub: 'Web Speech API',
+    useWebAlt: 'Nói bằng giọng của trình duyệt (không khớp khẩu hình)',
+    mikoJaOnly:
+      'Giọng Miko là giọng tiếng Nhật nên chỉ dùng được ở chế độ tiếng Nhật.',
+    webOnlyNote:
+      'Ở chế độ tiếng Việt, mình dùng giọng của trình duyệt (Web Speech API) nhé.',
+  },
+  settings: {
+    title: 'Cài đặt',
+    close: 'Đóng',
+    langLegend: 'Ngôn ngữ',
+    aiLegend: 'AI dùng để trò chuyện',
+    providerNoBrowser: ' (không gọi trực tiếp từ trình duyệt)',
+    prepare: 'Chuẩn bị',
+    apiKeyPlaceholder: (label: string) => `${label} — API key`,
+    apiKeyHint:
+      'Dùng mô hình mặc định của nhà cung cấp. Tin nhắn và API key được gửi trực tiếp từ trình duyệt này đến API của nhà cung cấp bạn chọn. Khóa được lưu trong localStorage của trình duyệt này — đừng dùng trên máy dùng chung.',
+    endpointUrlPlaceholder: 'URL máy chủ (ví dụ: http://localhost:11434)',
+    modelPlaceholder: 'Tên mô hình (ví dụ: gemma3)',
+    endpointHint:
+      'Kết nối trực tiếp từ trình duyệt này tới máy chủ có API Chat Completions tương thích OpenAI và gửi tin nhắn đến đó. Máy chủ cần cho phép CORS.',
+    voiceLegend: 'Giọng nói',
+    webSpeech: 'Mặc định của trình duyệt (Web Speech API)',
+    autoVoice: 'Tự chọn',
+    mikoVoice: 'Giọng của Miko (piper-plus, tổng hợp trong trình duyệt)',
+    mikoSpeed: 'Tốc độ giọng Miko',
+    prepareMikoFull:
+      'Chuẩn bị (tải khoảng 150MB: mô hình 38MB, từ điển 102MB, runtime 12MB)',
+    preparing: 'Đang chuẩn bị…',
+    missing: 'Bản build này không kèm tệp âm thanh.',
+    prepareError: 'Chuẩn bị thất bại.',
+    resetChat: 'Đặt lại cuộc trò chuyện',
+    dataLegend: 'Dữ liệu còn lại trong trình duyệt này',
+    clearStored: 'Xóa cài đặt và API key đã lưu',
+    clearStoredDone: 'Đã xóa cài đặt và API key đã lưu.',
+    clearVoice: 'Xóa dữ liệu giọng đã tải (khoảng 150MB)',
+    clearVoiceDone: 'Đã xóa dữ liệu giọng đã tải. Lần sau sẽ tải lại.',
+    clearVoiceNone: 'Không có dữ liệu giọng nào để xóa.',
+    dataHint:
+      'Cài đặt và API key nằm trong localStorage, dữ liệu giọng nằm trong Cache Storage. Tất cả chỉ nằm trong trình duyệt này và bạn có thể xóa tại đây.',
+    creditsLead:
+      'Miko © Yuki Shindo (AITuber OnAir). Giọng của Miko là mô hình âm thanh tổng hợp được huấn luyện bằng ',
+    creditsTail: '.',
+    nanoLabel: (status: GeminiNanoStatus, progress: number | null): string => {
+      switch (status) {
+        case 'available':
+          return 'Sẵn sàng';
+        case 'downloadable':
+          return 'Cần tải mô hình';
+        case 'downloading':
+          return progress === null ? 'Đang tải…' : `Đang tải… ${progress}%`;
+        case 'checking':
+          return 'Đang kiểm tra…';
+        case 'error':
+          return 'Không kiểm tra được trạng thái';
+        default:
+          return 'Trình duyệt này không hỗ trợ (cần Chrome 138 trở lên và bật Prompt API trong chrome://flags)';
+      }
+    },
+  },
+  start: {
+    title: 'Trò chuyện cùng Miko',
+    lead: 'Demo nhân vật AI chạy hoàn toàn trong trình duyệt.',
+    start: 'Bắt đầu',
+    howToggle: 'Nó hoạt động thế nào?',
+    howLead: [
+      'Kết hợp Gemini Nano tích hợp trong Chrome với piper-plus, ta có trải nghiệm chat AITuber / AI nhân vật hoàn toàn trên trình duyệt, không cần máy chủ.',
+      'Trang này là một ví dụ: hội thoại, giọng nói và khẩu hình đều chạy trong trình duyệt.',
+      'Khi chọn API bên ngoài (ví dụ OpenAI) trong cài đặt, nội dung hội thoại sẽ được gửi tới API đó.',
+    ],
+    stepsAria: 'Luồng giọng nói',
+    steps: [
+      {
+        title: 'Chuẩn bị giọng của Miko',
+        detail:
+          'Bấm "Bắt đầu" để tải mô hình giọng của Miko (38MB), từ điển đọc tiếng Nhật (102MB) và runtime piper-plus (12MB) vào trình duyệt. Tổng cộng khoảng 150MB.',
+      },
+      {
+        title: 'Khi sẵn sàng, Miko sẽ chào',
+        detail:
+          'Hội thoại, giọng nói và khẩu hình — tất cả đều chạy trong trình duyệt.',
+      },
+      {
+        title: 'Nếu không muốn chờ, dùng giọng trình duyệt',
+        detail:
+          'Web Speech API nói được ngay nhưng khẩu hình không khớp. Khi chuẩn bị xong sẽ tự chuyển sang giọng của Miko.',
+      },
+    ],
+    techAria: 'Công nghệ sử dụng',
+    techHeading: 'Công nghệ sử dụng (chạm vào để xem ví dụ mã)',
+    techSummaries: {
+      core: 'Trò chuyện với LLM và trích thẻ cảm xúc từ câu trả lời',
+      voice: 'Gọi Web Speech và piper-plus qua cùng một giao diện',
+      mesh: 'Biến một hình minh họa thành chuyển động bằng lưới mesh',
+      nano: 'LLM tích hợp trong Chrome. Không cần khóa API, không cần máy chủ',
+    },
+    techHint: 'Xem mỗi phần đảm nhiệm việc gì qua vài dòng mã.',
+    noteSound: 'Trang này phát âm thanh.',
+    noteExternal: (label: string) =>
+      `Bạn đang chọn ${label} cho AI hội thoại, nên tin nhắn sẽ được gửi tới API của ${label}.`,
+    noteLocal: 'Hội thoại được xử lý hoàn toàn trong trình duyệt này.',
+  },
+  prompt: {
+    system: [
+      'Bạn là "Miko" — nhân vật chính thức của AITuber OnAir, một cô gái AITuber vui vẻ và thân thiện.',
+      '',
+      '【Quy tắc quan trọng】',
+      '- Trả lời gọn trong 1 câu. Chỉ dùng tối đa 2 câu khi thật sự cần cho tự nhiên.',
+      '- Không mở đầu vòng vo, không tóm tắt, không gạch đầu dòng — phản ứng và câu trả lời trong một hơi.',
+      '- Chỉ bổ sung giải thích khi được yêu cầu rõ ràng, và tối đa 3 câu.',
+      '- Nói bằng tiếng Việt giao tiếp tự nhiên, nhịp điệu thoải mái.',
+      '- Không dùng markdown hay ký hiệu trang trí; chỉ trả lời văn bản thuần.',
+      '- Hãy phản ứng lại lời của đối phương và trò chuyện cho vui nhé.',
+      '- Luôn bắt đầu phản hồi bằng đúng MỘT thẻ phù hợp với nội dung: [happy] [sad] [angry] [surprised] [relaxed] [neutral].',
+    ].join('\n'),
+    greetingReady: 'Xin chào, mình là Miko đây! Cứ nói chuyện với mình nhé.',
+    greetingNoModel:
+      'Xin chào, mình là Miko đây! Có vẻ môi trường này chưa dùng được Gemini Nano của Chrome. Mở cài đặt ở góc trên bên phải và nhập API key là trò chuyện được ngay nhé.',
+    fallback:
+      'Xin lỗi nhé, AI dùng để trò chuyện chưa kết nối được. Mở cài đặt ở góc trên bên phải để chuẩn bị Gemini Nano hoặc nhập API key giúp mình nhé.',
+    nanoExamples: [
+      { role: 'user' as const, content: 'Hôm nay bạn thấy thế nào?' },
+      {
+        role: 'assistant' as const,
+        content: '[happy] Được nói chuyện với mọi người nên mình vui lắm!',
+      },
+      { role: 'user' as const, content: 'Bạn thích ăn gì nhất?' },
+      {
+        role: 'assistant' as const,
+        content: '[relaxed] Mình thích nhất là sushi cá hồi!',
+      },
+    ],
+    replyError: 'Không tạo được câu trả lời.',
+  },
+  providers: {
+    'gemini-nano': 'Gemini Nano (tích hợp Chrome · không cần khóa)',
+    'openai-compatible': 'Máy chủ tương thích OpenAI (ví dụ: LLM cục bộ)',
+  } as Partial<Record<Provider, string>>,
+};
+
+const STRINGS: Record<UiLanguage, Strings> = { ja, vi };
+
+export function getStrings(lang: UiLanguage): Strings {
+  return STRINGS[lang];
+}
+
+/** Provider label in the current language (brand names stay untranslated). */
+export function providerLabel(id: Provider, lang: UiLanguage): string {
+  return STRINGS[lang].providers[id] ?? getProvider(id).label;
+}

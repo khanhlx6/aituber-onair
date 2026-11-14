@@ -4,6 +4,7 @@ import {
   resolveOpenAICompatibleEndpoint,
 } from '@aituber-onair/core';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { type UiLanguage, getStrings } from '../lib/i18n';
 import { type Provider, getProvider } from '../lib/providers';
 
 export interface ChatMessage {
@@ -19,6 +20,8 @@ export interface AssistantReply {
 
 export interface UseChatCoreOptions {
   provider: Provider;
+  /** Language of the conversation; drives prompts and error text */
+  lang: UiLanguage;
   apiKey: string;
   /** For the OpenAI-compatible provider: server URL and model name */
   openaiCompatible: { endpoint: string; model: string };
@@ -36,23 +39,13 @@ interface ResponsePayload {
   screenplay?: { emotion?: string; text?: string };
 }
 
-/**
- * Few-shot turns for Chrome's built-in model. Gemini Nano follows the reply
- * length and the leading emotion tag far more reliably when it sees examples.
- */
-const GEMINI_NANO_EXAMPLES = [
-  { role: 'user', content: '今日はどんな気分？' },
-  { role: 'assistant', content: '[happy] みんなと話せて元気いっぱいだよ！' },
-  { role: 'user', content: '好きな食べ物は？' },
-  { role: 'assistant', content: '[relaxed] 特にサーモンのお寿司が好き！' },
-] as const;
-
 let messageSeq = 0;
 const nextId = () => `${Date.now()}-${++messageSeq}`;
 
 /** Wires AITuberOnAirCore to a message list; speech is handled by the caller. */
 export function useChatCore({
   provider,
+  lang,
   apiKey,
   openaiCompatible,
   nanoReady,
@@ -100,6 +93,7 @@ export function useChatCore({
       return;
     }
 
+    const strings = getStrings(lang);
     const core = new AITuberOnAirCore({
       apiKey,
       chatProvider: provider,
@@ -109,7 +103,9 @@ export function useChatCore({
             providerOptions: {
               // Reuse one Prompt API session instead of rebuilding it per turn.
               sessionMode: 'persistent' as const,
-              initialPrompts: GEMINI_NANO_EXAMPLES.map((example) => ({
+              // Few-shot turns: Gemini Nano follows the reply length and the
+              // leading emotion tag far more reliably when it sees examples.
+              initialPrompts: strings.prompt.nanoExamples.map((example) => ({
                 ...example,
               })),
             },
@@ -164,9 +160,7 @@ export function useChatCore({
     });
     core.on(AITuberOnAirCoreEvent.ERROR, (err: unknown) => {
       console.error('AITuberOnAirCore error:', err);
-      setError(
-        err instanceof Error ? err.message : '応答の生成に失敗しました。',
-      );
+      setError(err instanceof Error ? err.message : strings.prompt.replyError);
       setIsProcessing(false);
     });
 
@@ -178,6 +172,7 @@ export function useChatCore({
   }, [
     apiKey,
     canChat,
+    lang,
     provider,
     systemPrompt,
     info.auth,

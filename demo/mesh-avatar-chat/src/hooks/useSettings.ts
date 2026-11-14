@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { type UiLanguage, detectUiLanguage } from '../lib/i18n';
 import {
   type KeyedProvider,
   PROVIDERS,
@@ -13,13 +14,17 @@ export type VoiceKind = 'webSpeech' | 'piperPlus';
  * does not have to re-enter them; they never leave the browser except in the
  * requests to the provider the visitor chose.
  *
- * Grouped by concern (`llm`, `tts`) so new areas such as avatar options can be
- * added as new top-level groups without touching the others. Bump `version`
- * and extend `migrate()` when a stored shape changes; anything else stored
- * under this key is ignored.
+ * Grouped by concern (`ui`, `llm`, `tts`) so new areas such as avatar options
+ * can be added as new top-level groups without touching the others. Bump
+ * `version` and extend `migrate()` when a stored shape changes; anything else
+ * stored under this key is ignored.
  */
 export interface DemoSettings {
-  version: 1;
+  version: 2;
+  ui: {
+    /** Interface / conversation language */
+    language: UiLanguage;
+  };
   llm: {
     provider: Provider;
     apiKeys: Partial<Record<KeyedProvider, string>>;
@@ -43,26 +48,35 @@ const STORAGE_KEY = 'aituber-onair-mesh-avatar-chat';
 export const DEFAULT_PIPER_SPEED = 1.0;
 export const PIPER_SPEED_RANGE = { min: 0.7, max: 1.2, step: 0.05 };
 
-export const DEFAULT_SETTINGS: DemoSettings = {
-  version: 1,
-  llm: {
-    provider: 'gemini-nano',
-    apiKeys: {},
-    openaiCompatible: { endpoint: '', model: '' },
-  },
-  tts: {
-    engine: 'webSpeech',
-    webSpeechVoice: '',
-    piperSpeed: DEFAULT_PIPER_SPEED,
-  },
-};
-
-function migrate(raw: unknown): DemoSettings {
-  if (!raw || typeof raw !== 'object') return DEFAULT_SETTINGS;
-  const stored = raw as Partial<DemoSettings>;
-  if (stored.version !== 1) return DEFAULT_SETTINGS;
+function makeDefaults(): DemoSettings {
   return {
-    version: 1,
+    version: 2,
+    ui: { language: detectUiLanguage() },
+    llm: {
+      provider: 'gemini-nano',
+      apiKeys: {},
+      openaiCompatible: { endpoint: '', model: '' },
+    },
+    tts: {
+      engine: 'webSpeech',
+      webSpeechVoice: '',
+      piperSpeed: DEFAULT_PIPER_SPEED,
+    },
+  };
+}
+
+export const DEFAULT_SETTINGS: DemoSettings = makeDefaults();
+
+/** v1 stores predate the `ui` group; keep their llm/tts data. */
+function migrate(raw: unknown): DemoSettings {
+  if (!raw || typeof raw !== 'object') return makeDefaults();
+  const stored = raw as Partial<Omit<DemoSettings, 'version'>> & {
+    version?: number;
+  };
+  if (stored.version !== 1 && stored.version !== 2) return makeDefaults();
+  return {
+    version: 2,
+    ui: { ...makeDefaults().ui, ...stored.ui },
     llm: {
       ...DEFAULT_SETTINGS.llm,
       ...stored.llm,
@@ -117,6 +131,10 @@ export function useSettings() {
     setSettings(DEFAULT_SETTINGS);
   }, []);
 
+  const updateUi = useCallback((patch: Partial<DemoSettings['ui']>) => {
+    setSettings((prev) => ({ ...prev, ui: { ...prev.ui, ...patch } }));
+  }, []);
+
   const updateLlm = useCallback((patch: Partial<DemoSettings['llm']>) => {
     setSettings((prev) => ({ ...prev, llm: { ...prev.llm, ...patch } }));
   }, []);
@@ -155,6 +173,7 @@ export function useSettings() {
 
   return {
     settings,
+    updateUi,
     updateLlm,
     updateTts,
     setApiKey,
