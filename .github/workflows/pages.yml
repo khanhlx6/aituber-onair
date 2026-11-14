@@ -23,8 +23,10 @@ env:
   # demo/mesh-avatar-chat/scripts/fetch-piper-assets.sh.
   PIPER_ASSETS_URL: ${{ vars.PIPER_ASSETS_URL }}
   # Base URL that serves sample-voice-v2.onnx and sample-voice-v2.onnx.json
-  # (Miko's voice model). Required.
-  PIPER_MODEL_BASE_URL: ${{ vars.PIPER_MODEL_BASE_URL }}
+  # (Miko's voice model). Required. Set the PIPER_MODEL_BASE_URL repository
+  # variable to use your own mirror; when it is unset the build falls back to
+  # the model files published with the upstream demo.
+  PIPER_MODEL_BASE_URL: ${{ vars.PIPER_MODEL_BASE_URL || 'https://shinshin86.github.io/aituber-onair/mesh-avatar-chat/piper/models' }}
 
 jobs:
   build:
