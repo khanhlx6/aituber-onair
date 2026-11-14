@@ -1,7 +1,9 @@
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 import type { ChatMessage } from '../hooks/useChatCore';
+import { type UiLanguage, getStrings } from '../lib/i18n';
 
 interface ChatPanelProps {
+  lang: UiLanguage;
   messages: ChatMessage[];
   partial: string;
   isProcessing: boolean;
@@ -12,13 +14,8 @@ interface ChatPanelProps {
   onSend: (text: string) => void;
 }
 
-const SUGGESTIONS = [
-  '自己紹介して',
-  '今日のおすすめの過ごし方は？',
-  '好きな食べ物は？',
-];
-
 export function ChatPanel({
+  lang,
   messages,
   partial,
   isProcessing,
@@ -27,6 +24,7 @@ export function ChatPanel({
   disabledHint,
   onSend,
 }: ChatPanelProps) {
+  const strings = getStrings(lang);
   const [draft, setDraft] = useState('');
   const listRef = useRef<HTMLDivElement | null>(null);
 
@@ -44,7 +42,7 @@ export function ChatPanel({
   };
 
   return (
-    <section className="chat" aria-label="チャット">
+    <section className="chat" aria-label={strings.chat.label}>
       <div ref={listRef} className="chat-log" aria-live="polite">
         {messages.map((message) => (
           <div key={message.id} className={`bubble bubble-${message.role}`}>
@@ -53,14 +51,14 @@ export function ChatPanel({
         ))}
         {isProcessing && (
           <div className="bubble bubble-assistant bubble-partial">
-            {partial || '考え中…'}
+            {partial || strings.chat.thinking}
           </div>
         )}
         {error && <div className="chat-error">{error}</div>}
       </div>
       {messages.length <= 1 && (
         <div className="suggestions">
-          {SUGGESTIONS.map((text) => (
+          {strings.chat.suggestions.map((text) => (
             <button
               key={text}
               type="button"
@@ -79,9 +77,9 @@ export function ChatPanel({
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           placeholder={
-            disabled && disabledHint ? disabledHint : 'ミコに話しかける'
+            disabled && disabledHint ? disabledHint : strings.chat.placeholder
           }
-          aria-label="メッセージ"
+          aria-label={strings.chat.message}
           disabled={disabled}
           autoComplete="off"
           enterKeyHint="send"
@@ -91,7 +89,7 @@ export function ChatPanel({
           className="send"
           disabled={disabled || isProcessing || !draft.trim()}
         >
-          送信
+          {strings.chat.send}
         </button>
       </form>
     </section>

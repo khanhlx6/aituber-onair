@@ -1,6 +1,7 @@
 import { PiperPlusEngine, WebSpeechEngine } from '@aituber-onair/core';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { pickJapaneseVoice } from '../lib/webSpeechVoice';
+import type { UiLanguage } from '../lib/i18n';
+import { pickVoiceFor } from '../lib/webSpeechVoice';
 import type { VoiceKind } from './useSettings';
 
 export type PiperStatus = 'idle' | 'loading' | 'ready' | 'error' | 'missing';
@@ -28,8 +29,16 @@ const PIPER_PREFETCH_FILES = [
 const WEB_SPEECH_RATE = 1.0;
 const WEB_SPEECH_PITCH = 1.0;
 
+/** BCP-47 tag handed to the Web Speech API per UI language */
+const SPEECH_LANG: Record<UiLanguage, string> = {
+  ja: 'ja-JP',
+  vi: 'vi-VN',
+};
+
 export interface SpeakOptions {
   voice: VoiceKind;
+  /** Language of the spoken text; also picks the Web Speech voice */
+  lang: UiLanguage;
   /** Web Speech voice name; empty picks automatically */
   webSpeechVoice?: string;
   /** Speed multiplier for the piper-plus voice (1 = as trained) */
@@ -129,7 +138,7 @@ async function prefetchWithProgress(
 
 function splitSentences(text: string): string[] {
   return text
-    .split(/(?<=[。！？!?\n])/)
+    .split(/(?<=[。！？!?\n])|(?<=[.!?])\s+/)
     .map((part) => part.trim())
     .filter(Boolean);
 }
@@ -230,7 +239,9 @@ export function useTts({ play, stopPlayback, envelope }: UseTtsOptions) {
       const seq = speakSeqRef.current;
       const piper = piperRef.current;
 
-      if (options.voice === 'piperPlus' && piper) {
+      // The Miko voice model is Japanese-only; other languages use the
+      // browser voice below even if piper is loaded.
+      if (options.voice === 'piperPlus' && piper && options.lang === 'ja') {
         piper.setSpeed(options.piperSpeed);
         const chunks = splitSentences(message);
         let next = piper.fetchAudio({ style: 'talk', message: chunks[0] }, '');
@@ -250,7 +261,7 @@ export function useTts({ play, stopPlayback, envelope }: UseTtsOptions) {
       }
 
       if (!webSpeechAvailable) return;
-      const voice = pickJapaneseVoice(voices, options.webSpeechVoice);
+      const voice = pickVoiceFor(options.lang, voices, options.webSpeechVoice);
       envelopeRef.current.start();
       // Browsers without a usable voice may never fire `end`; stop the mouth
       // after the time the text could plausibly take.
@@ -271,7 +282,11 @@ export function useTts({ play, stopPlayback, envelope }: UseTtsOptions) {
           getWeb().speakDirectly(
             { style: 'talk', message },
             voice?.name ?? '',
-            { lang: 'ja-JP', rate: WEB_SPEECH_RATE, pitch: WEB_SPEECH_PITCH },
+            {
+              lang: SPEECH_LANG[options.lang],
+              rate: WEB_SPEECH_RATE,
+              pitch: WEB_SPEECH_PITCH,
+            },
           ),
           timeout,
         ]);

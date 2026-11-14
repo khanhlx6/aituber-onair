@@ -7,39 +7,14 @@ import { type VoiceMode, VoiceStage } from './components/VoiceStage';
 import { useAudioMotion } from './hooks/useAudioMotion';
 import { type AssistantReply, useChatCore } from './hooks/useChatCore';
 import { useGeminiNano } from './hooks/useGeminiNano';
-import { useSettings } from './hooks/useSettings';
+import { type DemoSettings, useSettings } from './hooks/useSettings';
 import { useSpeechEnvelope } from './hooks/useSpeechEnvelope';
 import { useTts } from './hooks/useTts';
-import { listJapaneseVoices } from './lib/webSpeechVoice';
+import { getStrings } from './lib/i18n';
+import { listVoicesFor } from './lib/webSpeechVoice';
 
 const REPO_URL = 'https://github.com/shinshin86/aituber-onair';
 const STUDIO_URL = 'https://shinshin86.github.io/mesh-avatar-studio/';
-
-const SYSTEM_PROMPT = [
-  'あなたは「ミコ」。AITuber OnAir の公式キャラクターで、明るく親しみやすい AITuber の女の子です。',
-  '',
-  '【重要なルール】',
-  '- 返答は原則1文にしてください。自然さに必要な場合のみ2文まで使えます。',
-  '- 前置き、要約、箇条書きは使わず、リアクションと答えを一息で読める短さで返してください。',
-  '- 詳しい説明を明示的に求められた場合だけ短く補足し、その場合も3文以内にしてください。',
-  '- 日本語の話し言葉で、テンポよく返してください。',
-  '- マークダウンや記号での装飾は使わず、プレーンテキストで返してください。',
-  '- 相手の言葉にはリアクションを交えて楽しく返しましょう。',
-  '- 返信の文頭には必ず内容に応じて [happy] [sad] [angry] [surprised] [relaxed] [neutral] のいずれかを1つだけ付けてください。',
-].join('\n');
-
-const GREETING_READY: AssistantReply = {
-  text: 'こんにちは、ミコだよ！なんでも話しかけてね。',
-  emotion: 'happy',
-};
-const GREETING_NO_MODEL: AssistantReply = {
-  text: 'こんにちは、ミコだよ！この環境では Chrome の Gemini Nano が使えないみたい。右上の設定から API キーを入れると会話できるよ。',
-  emotion: 'happy',
-};
-const FALLBACK_REPLY: AssistantReply = {
-  text: 'ごめんね、まだ会話に使う AI がつながっていないの。右上の設定から Gemini Nano を準備するか、API キーを入れてね。',
-  emotion: 'sad',
-};
 
 /** Phones and metered connections should not download about 150MB on their own. */
 function shouldAutoPreparePiper(): boolean {
@@ -54,6 +29,7 @@ function shouldAutoPreparePiper(): boolean {
 export default function App() {
   const {
     settings,
+    updateUi,
     updateLlm,
     updateTts,
     setApiKey,
@@ -87,6 +63,12 @@ export default function App() {
     settingsRef.current = settings;
   }, [settings]);
 
+  const lang = settings.ui.language;
+  const strings = useMemo(() => getStrings(lang), [lang]);
+  const systemPrompt = strings.prompt.system;
+  /** The Miko voice model speaks Japanese only */
+  const mikoVoice = lang === 'ja';
+
   const nanoReady = nano.status === 'available';
 
   const speakReply = useCallback(
@@ -98,29 +80,55 @@ export default function App() {
       const current = settingsRef.current.tts;
       void tts.speak(reply.text, {
         voice: current.engine,
+        lang,
         webSpeechVoice: current.webSpeechVoice,
         piperSpeed: current.piperSpeed,
       });
     },
-    [tts],
+    [tts, lang],
+  );
+
+  const fallbackReply = useMemo<AssistantReply>(
+    () => ({ text: strings.prompt.fallback, emotion: 'sad' }),
+    [strings],
   );
 
   const chat = useChatCore({
     provider: settings.llm.provider,
+    lang,
     apiKey,
     openaiCompatible: settings.llm.openaiCompatible,
     nanoReady,
-    systemPrompt: SYSTEM_PROMPT,
-    fallbackReply: FALLBACK_REPLY,
+    systemPrompt,
+    fallbackReply,
     onReply: speakReply,
   });
 
   useEffect(() => {
-    void listJapaneseVoices().then(tts.setVoices);
-  }, [tts.setVoices]);
+    void listVoicesFor(lang).then(tts.setVoices);
+  }, [lang, tts.setVoices]);
 
-  const voiceMode: VoiceMode =
-    settings.tts.engine === 'piperPlus' && tts.piperReady
+  useEffect(() => {
+    document.documentElement.lang = lang;
+    document.title = strings.app.docTitle;
+  }, [lang, strings]);
+
+  /** Switching language also resets the browser-voice choice (voice names differ per language). */
+  const handleUpdateUi = useCallback(
+    (patch: Partial<DemoSettings['ui']>) => {
+      if (patch.language === 'vi') {
+        updateTts({ engine: 'webSpeech', webSpeechVoice: '' });
+      } else if (patch.language && patch.language !== lang) {
+        updateTts({ webSpeechVoice: '' });
+      }
+      updateUi(patch);
+    },
+    [lang, updateTts, updateUi],
+  );
+
+  const voiceMode: VoiceMode = !mikoVoice
+    ? 'web'
+    : settings.tts.engine === 'piperPlus' && tts.piperReady
       ? 'piper'
       : webSpeechEarly || (autoSwitched && settings.tts.engine === 'webSpeech')
         ? 'web'
@@ -129,23 +137,27 @@ export default function App() {
   const handleStart = useCallback(() => {
     setStarted(true);
     if (nano.status === 'available') nano.warmUp();
-    if (shouldAutoPreparePiper()) void tts.preparePiper();
-  }, [nano, tts]);
+    // The 150MB Miko voice download only makes sense for Japanese.
+    if (mikoVoice && shouldAutoPreparePiper()) void tts.preparePiper();
+  }, [nano, tts, mikoVoice]);
 
   // Miko greets once, with whichever voice becomes usable first: her own when
   // it is ready, or the browser voice if the visitor asked not to wait.
   useEffect(() => {
     if (!started || greetedRef.current || voiceMode === 'waiting') return;
     greetedRef.current = true;
-    const greeting = chat.canChat ? GREETING_READY : GREETING_NO_MODEL;
+    const greeting = chat.canChat
+      ? { text: strings.prompt.greetingReady, emotion: 'happy' }
+      : { text: strings.prompt.greetingNoModel, emotion: 'happy' };
     chat.addAssistantMessage(greeting.text);
     speakReply(greeting);
-  }, [started, voiceMode, chat, speakReply]);
+  }, [started, voiceMode, chat, speakReply, strings]);
 
   // The Miko voice takes over once, as soon as it is ready; the visitor can
   // still go back to the browser voice from the settings.
   useEffect(() => {
-    if (!started || !tts.piperReady || autoSwitchedRef.current) return;
+    if (!started || !mikoVoice || !tts.piperReady || autoSwitchedRef.current)
+      return;
     autoSwitchedRef.current = true;
     updateTts({ engine: 'piperPlus' });
     const mark = window.setTimeout(() => setAutoSwitched(true), 0);
@@ -157,7 +169,7 @@ export default function App() {
       window.clearTimeout(show);
       window.clearTimeout(hide);
     };
-  }, [started, tts.piperReady, updateTts, webSpeechEarly]);
+  }, [started, mikoVoice, tts.piperReady, updateTts, webSpeechEarly]);
 
   const handleUseWebSpeech = useCallback(() => {
     setWebSpeechEarly(true);
@@ -183,11 +195,9 @@ export default function App() {
     if (nano.status === 'downloadable') {
       return (
         <div className="banner">
-          <span>
-            Chrome 内蔵の Gemini Nano を準備すると、キーなしで会話できます。
-          </span>
+          <span>{strings.app.nanoPrepareLead}</span>
           <button type="button" className="link" onClick={nano.prepare}>
-            準備する
+            {strings.app.nanoPrepare}
           </button>
         </div>
       );
@@ -196,15 +206,18 @@ export default function App() {
       return (
         <div className="banner">
           <span className="spinner" aria-hidden="true" />
-          <span>
-            Gemini Nano を準備中…
-            {nano.progress === null ? '' : ` ${nano.progress}%`}
-          </span>
+          <span>{strings.app.nanoDownloading(nano.progress)}</span>
         </div>
       );
     }
     return null;
-  }, [nano.prepare, nano.progress, nano.status, settings.llm.provider]);
+  }, [
+    nano.prepare,
+    nano.progress,
+    nano.status,
+    settings.llm.provider,
+    strings,
+  ]);
 
   return (
     <div className="app">
@@ -220,7 +233,7 @@ export default function App() {
         >
           Created with <strong>Mesh Avatar Studio</strong>
         </a>
-        <nav className="topbar-links" aria-label="リンク">
+        <nav className="topbar-links" aria-label={strings.app.navLinks}>
           <a href={REPO_URL} target="_blank" rel="noreferrer">
             GitHub
           </a>
@@ -228,8 +241,8 @@ export default function App() {
             type="button"
             className="icon-button"
             onClick={() => setSettingsOpen(true)}
-            aria-label="設定"
-            title="設定"
+            aria-label={strings.app.settings}
+            title={strings.app.settings}
           >
             ⚙
           </button>
@@ -239,7 +252,7 @@ export default function App() {
       <main className="stage">
         <section
           className="avatar-pane"
-          aria-label="アバター"
+          aria-label={strings.app.avatar}
           data-speaking={isSpeaking ? 'true' : 'false'}
         >
           <MeshAvatarCanvas
@@ -248,6 +261,8 @@ export default function App() {
             emotion={emotion}
           />
           <VoiceStage
+            lang={lang}
+            mikoVoice={mikoVoice}
             mode={voiceMode}
             piperStatus={tts.piperStatus}
             piperProgress={tts.piperProgress}
@@ -260,12 +275,13 @@ export default function App() {
         <section className="chat-pane">
           {nanoBanner}
           <ChatPanel
+            lang={lang}
             messages={chat.messages}
             partial={chat.partial}
             isProcessing={chat.isProcessing}
             error={chat.error}
             disabled={chatDisabled}
-            disabledHint="ミコの声を準備しています…"
+            disabledHint={strings.app.chatDisabledHint}
             onSend={(text) => void chat.send(text)}
           />
           <p className="stack-line">
@@ -276,14 +292,20 @@ export default function App() {
       </main>
 
       {!started && (
-        <StartOverlay provider={settings.llm.provider} onStart={handleStart} />
+        <StartOverlay
+          lang={lang}
+          provider={settings.llm.provider}
+          onStart={handleStart}
+        />
       )}
       {settingsOpen && (
         <SettingsSheet
+          lang={lang}
           settings={settings}
           nano={nano}
           piperStatus={tts.piperStatus}
           voices={tts.voices}
+          onUpdateUi={handleUpdateUi}
           onUpdateLlm={updateLlm}
           onUpdateTts={updateTts}
           onSetApiKey={setApiKey}
