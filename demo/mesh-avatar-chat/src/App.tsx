@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChatPanel } from './components/ChatPanel';
+import { LanguageToggle } from './components/LanguageToggle';
 import { MeshAvatarCanvas } from './components/MeshAvatarCanvas';
 import { SettingsSheet } from './components/SettingsSheet';
 import { StartOverlay } from './components/StartOverlay';
@@ -10,7 +11,7 @@ import { useGeminiNano } from './hooks/useGeminiNano';
 import { type DemoSettings, useSettings } from './hooks/useSettings';
 import { useSpeechEnvelope } from './hooks/useSpeechEnvelope';
 import { useTts } from './hooks/useTts';
-import { getStrings } from './lib/i18n';
+import { type UiLanguage, getStrings } from './lib/i18n';
 import { listVoicesFor } from './lib/webSpeechVoice';
 
 const REPO_URL = 'https://github.com/shinshin86/aituber-onair';
@@ -116,14 +117,22 @@ export default function App() {
   /** Switching language also resets the browser-voice choice (voice names differ per language). */
   const handleUpdateUi = useCallback(
     (patch: Partial<DemoSettings['ui']>) => {
-      if (patch.language === 'vi') {
-        updateTts({ engine: 'webSpeech', webSpeechVoice: '' });
-      } else if (patch.language && patch.language !== lang) {
-        updateTts({ webSpeechVoice: '' });
+      if (patch.language && patch.language !== lang) {
+        // Voice names differ per language; the Miko voice is Japanese-only.
+        updateTts(
+          patch.language === 'ja'
+            ? { webSpeechVoice: '' }
+            : { engine: 'webSpeech', webSpeechVoice: '' },
+        );
       }
       updateUi(patch);
     },
     [lang, updateTts, updateUi],
+  );
+
+  const handleLanguageChange = useCallback(
+    (language: UiLanguage) => handleUpdateUi({ language }),
+    [handleUpdateUi],
   );
 
   const voiceMode: VoiceMode = !mikoVoice
@@ -234,6 +243,7 @@ export default function App() {
           Created with <strong>Mesh Avatar Studio</strong>
         </a>
         <nav className="topbar-links" aria-label={strings.app.navLinks}>
+          <LanguageToggle lang={lang} onChange={handleLanguageChange} />
           <a href={REPO_URL} target="_blank" rel="noreferrer">
             GitHub
           </a>
@@ -296,6 +306,7 @@ export default function App() {
           lang={lang}
           provider={settings.llm.provider}
           onStart={handleStart}
+          onLanguageChange={handleLanguageChange}
         />
       )}
       {settingsOpen && (

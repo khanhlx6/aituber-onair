@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { type UiLanguage, detectUiLanguage } from '../lib/i18n';
+import { DEFAULT_UI_LANGUAGE, type UiLanguage } from '../lib/i18n';
 import {
   type KeyedProvider,
   PROVIDERS,
@@ -51,7 +51,7 @@ export const PIPER_SPEED_RANGE = { min: 0.7, max: 1.2, step: 0.05 };
 function makeDefaults(): DemoSettings {
   return {
     version: 2,
-    ui: { language: detectUiLanguage() },
+    ui: { language: DEFAULT_UI_LANGUAGE },
     llm: {
       provider: 'gemini-nano',
       apiKeys: {},

@@ -31,8 +31,9 @@ const WEB_SPEECH_PITCH = 1.0;
 
 /** BCP-47 tag handed to the Web Speech API per UI language */
 const SPEECH_LANG: Record<UiLanguage, string> = {
-  ja: 'ja-JP',
   vi: 'vi-VN',
+  en: 'en-US',
+  ja: 'ja-JP',
 };
 
 export interface SpeakOptions {

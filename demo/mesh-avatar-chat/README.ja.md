@@ -14,7 +14,7 @@ AITuber OnAir の公式キャラクター「ミコ」を
 - 会話: Chrome 内蔵の Gemini Nano（キー不要）、`@aituber-onair/chat` がブラウザから呼べる各社の API（OpenAI、Gemini、Claude、xAI、Z.ai、Kimi、DeepSeek、Mistral、PLaMo、OpenRouter）を自分の API キーで、またはローカル LLM などの OpenAI 互換サーバーを使えます。ブラウザから直接呼べないプロバイダー（現在は Sakana AI）は一覧に出ますが選べません。キーと設定はこのブラウザのローカルストレージにだけ保存されます。
 - 声: Web Speech API ですぐに喋ります。裏で [piper-plus](https://github.com/ayutaz/piper-plus) のミコ専用モデルを準備し、準備できたら切り替えられます。取得量は合計約150MB で、内訳はモデル 38MB、OpenJTalk の辞書 102MB、ONNX Runtime と OpenJTalk の WebAssembly 12MB です。合成はブラウザ内で行います。スマホや省データ設定の環境では自動で取得せず、リンクを押したときだけ取得します。
 - アバター: 会話と感情タグは `@aituber-onair/core` が処理し、`.mavatar` ファイルは `mesh-avatar` ランタイムが動かします。
-- 言語: UI と会話は日本語とベトナム語に対応しています（設定 → 言語、ブラウザから自動判定）。ミコの声は日本語専用で、それ以外の言語ではブラウザ標準の声（Web Speech API）を使います。
+- 言語: UI と会話はベトナム語（既定）、英語、日本語に対応しています。メイン画面（トップバーと開始オーバーレイ）に言語トグルがあり、設定 → 言語 でも切り替えられます。ミコの声は日本語専用で、それ以外の言語ではブラウザ標準の声（Web Speech API）を使います。
 
 ## 手元で動かす
 
