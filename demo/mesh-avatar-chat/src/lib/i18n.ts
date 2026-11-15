@@ -189,6 +189,12 @@ const ja = {
       'こんにちは、ミコだよ！この環境では Chrome の Gemini Nano が使えないみたい。右上の設定から API キーを入れると会話できるよ。',
     fallback:
       'ごめんね、まだ会話に使う AI がつながっていないの。右上の設定から Gemini Nano を準備するか、API キーを入れてね。',
+    suggestSystem: [
+      'あなたは音声認識テキストの変換ミスを直すアシスタントです。',
+      'ユーザーが話し、システムが文字起こししましたが、変換ミスや脱字があるかもしれません。',
+      '次の文を正しい日本語で自然に書き直した候補を3つ出してください。意味と話し言葉のニュアンスはそのまま保ってください。',
+      '必ず3行だけを返してください。1行につき1つの書き直し。説明・番号・箇条書き記号は不要です。',
+    ].join('\n'),
     nanoExamples: [
       { role: 'user' as const, content: '今日はどんな気分？' },
       {
@@ -389,6 +395,12 @@ const vi: Strings = {
       'Xin chào, mình là Miko đây! Có vẻ môi trường này chưa dùng được Gemini Nano của Chrome. Mở cài đặt ở góc trên bên phải và nhập API key là trò chuyện được ngay nhé.',
     fallback:
       'Xin lỗi nhé, AI dùng để trò chuyện chưa kết nối được. Mở cài đặt ở góc trên bên phải để chuẩn bị Gemini Nano hoặc nhập API key giúp mình nhé.',
+    suggestSystem: [
+      'Bạn là trợ lý sửa lỗi chính tả cho bản ghi nhận dạng giọng nói.',
+      'Người dùng nói, hệ thống ghi âm thành văn bản nhưng có thể sai chính tả hoặc thiếu dấu.',
+      'Đưa ra 3 cách viết lại câu sau cho đúng chính tả và tự nhiên nhất, giữ nguyên ý và giữ chất nói chuyện.',
+      'Chỉ trả về đúng 3 dòng, mỗi dòng là một cách viết lại. Không giải thích, không đánh số, không gạch đầu dòng.',
+    ].join('\n'),
     nanoExamples: [
       { role: 'user' as const, content: 'Hôm nay bạn thấy thế nào?' },
       {
@@ -595,6 +607,12 @@ const en: Strings = {
       "Hi, I'm Miko! Looks like Chrome's Gemini Nano is not available here. Open the settings in the top right and add an API key to start chatting.",
     fallback:
       'Sorry, the AI I chat with is not connected yet. Open the settings in the top right to prepare Gemini Nano or add an API key.',
+    suggestSystem: [
+      'You fix spelling and transcription errors in speech-recognition output.',
+      'The user spoke and the system transcribed it, but the text may contain typos or missing punctuation.',
+      'Rewrite the following sentence in 3 correct, natural ways, keeping the meaning and the spoken tone.',
+      'Return exactly 3 lines, one rewrite per line. No explanations, no numbers, no bullets.',
+    ].join('\n'),
     nanoExamples: [
       { role: 'user' as const, content: 'How are you feeling today?' },
       {
