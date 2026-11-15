@@ -1,6 +1,8 @@
 import {
+  type ChangeEvent,
   type Dispatch,
   type FormEvent,
+  type MutableRefObject,
   type SetStateAction,
   useEffect,
   useRef,
@@ -17,15 +19,17 @@ interface ChatPanelProps {
   disabled: boolean;
   /** Shown in the input while the page cannot take messages yet */
   disabledHint?: string;
-  /** Controlled draft text; spoken sentences accumulate here too */
+  /** Controlled draft text; spoken sentences and chips are inserted into it */
   draft: string;
   onDraftChange: Dispatch<SetStateAction<string>>;
-  /** Append text (speech final or sample chip); moves the caret to the end */
+  /** Insert text at the caret (speech final or suggestion chip) */
   onDraftAppend: (text: string) => void;
-  /** Show the sample-sentence chips (chat start, or right after speaking) */
+  /** Receives the insert routine so speech can target the caret */
+  insertTextRef: MutableRefObject<((text: string) => void) | null>;
+  /** Show the suggestion chips (chat start, or right after speaking) */
   showSuggestions: boolean;
-  /** Bumped on every append; drives the caret back into the input */
-  appendSeq: number;
+  /** Candidate sentences: corrections of the latest utterance */
+  suggestions: string[];
   /** Speech input: speak instead of typing (browser speech recognition) */
   micSupported: boolean;
   micListening: boolean;
@@ -46,8 +50,9 @@ export function ChatPanel({
   draft,
   onDraftChange,
   onDraftAppend,
+  insertTextRef,
   showSuggestions,
-  appendSeq,
+  suggestions,
   micSupported,
   micListening,
   micInterim,
@@ -64,22 +69,72 @@ export function ChatPanel({
     if (list) list.scrollTop = list.scrollHeight;
   }, [messages, partial]);
 
-  // Speech lands hands-free: keep the caret in the box so the user can keep
-  // talking (sentence 2, 3...) and press Send when ready.
-  useEffect(() => {
-    if (appendSeq === 0) return;
+  // The in-progress utterance trails the editable draft as a ghost suffix.
+  const liveInterim = micListening ? micInterim.trim() : '';
+  const suffix = liveInterim
+    ? `${draft && !draft.endsWith(' ') ? ' ' : ''}${liveInterim}`
+    : '';
+  const composed = `${draft}${suffix}`;
+
+  /**
+   * Editor-style insert: replaces the selection (or sits at the caret), so a
+   * mistyped stretch can be selected and overwritten with a suggestion, and
+   * the next spoken sentence lands wherever the caret was left.
+   */
+  const insertAtSelection = (text: string) => {
+    const value = text.trim();
+    if (!value) return;
     const input = inputRef.current;
-    if (!input) return;
+    const selStart = input?.selectionStart ?? null;
+    const selEnd = input?.selectionEnd ?? null;
+    const limit = draft.length;
+    const start =
+      selStart === null ? limit : Math.max(0, Math.min(selStart, limit));
+    const end =
+      selEnd === null ? start : Math.max(start, Math.min(selEnd, limit));
+    const before = draft.slice(0, start);
+    const after = draft.slice(end);
+    const glue =
+      start === end && end === limit && before && !before.endsWith(' ')
+        ? ' '
+        : '';
+    const caret = before.length + glue.length + value.length;
+    onDraftChange(`${before}${glue}${value}${after}`);
+    // Keep the user's focus; park the caret right after the inserted text.
+    requestAnimationFrame(() => {
+      const el = inputRef.current;
+      if (el && document.activeElement === el) {
+        el.setSelectionRange(caret, caret);
+      }
+    });
+  };
+
+  // Speech lands while the user watches: expose the insert routine so
+  // utterances go to the caret the user picked, wherever that is.
+  useEffect(() => {
+    insertTextRef.current = insertAtSelection;
+    return () => {
+      insertTextRef.current = null;
+    };
+  });
+
+  /** Move focus from the mic button into the box — only when needed. */
+  const focusInput = () => {
+    const input = inputRef.current;
+    if (!input || document.activeElement === input) return;
     input.focus();
     input.setSelectionRange(input.value.length, input.value.length);
-  }, [appendSeq]);
+  };
 
-  const liveInterim = micListening ? micInterim.trim() : '';
-  const composed = liveInterim
-    ? draft.trim()
-      ? `${draft.trim()} ${liveInterim}`
-      : liveInterim
-    : draft;
+  const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const value = event.target.value;
+    // The trailing interim suffix is not user text; edits stay in the draft.
+    if (suffix && value.endsWith(suffix)) {
+      onDraftChange(value.slice(0, value.length - suffix.length));
+      return;
+    }
+    onDraftChange(value);
+  };
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -112,12 +167,13 @@ export function ChatPanel({
       </div>
       {showSuggestions && (
         <div className="suggestions">
-          {strings.chat.suggestions.map((text) => (
+          {suggestions.map((text) => (
             <button
               key={text}
               type="button"
               className="chip"
               disabled={disabled || isProcessing}
+              onPointerDown={(event) => event.preventDefault()}
               onClick={() => onDraftAppend(text)}
             >
               {text}
@@ -130,7 +186,7 @@ export function ChatPanel({
           ref={inputRef}
           className="chat-input"
           value={composed}
-          onChange={(event) => onDraftChange(event.target.value)}
+          onChange={handleChange}
           placeholder={
             micListening
               ? strings.chat.micListening
@@ -140,7 +196,6 @@ export function ChatPanel({
           }
           aria-label={strings.chat.message}
           disabled={disabled}
-          readOnly={micListening}
           autoComplete="off"
           enterKeyHint="send"
         />
@@ -150,7 +205,7 @@ export function ChatPanel({
           onPointerDown={(event) => event.preventDefault()}
           onClick={() => {
             onMicToggle();
-            inputRef.current?.focus();
+            focusInput();
           }}
           disabled={
             !micListening && (disabled || !micSupported || isProcessing)

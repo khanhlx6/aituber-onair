@@ -13,6 +13,7 @@ import { useGeminiNano } from './hooks/useGeminiNano';
 import { type DemoSettings, useSettings } from './hooks/useSettings';
 import { useSpeechEnvelope } from './hooks/useSpeechEnvelope';
 import { useSpeechInput } from './hooks/useSpeechInput';
+import { useSpeechSuggestions } from './hooks/useSpeechSuggestions';
 import { useTts } from './hooks/useTts';
 import { type UiLanguage, getStrings } from './lib/i18n';
 import { listVoicesFor } from './lib/webSpeechVoice';
@@ -211,21 +212,35 @@ export default function App() {
   const voiceLevel = Math.max(audioMotion.voiceLevel, envelope.level);
   const isSpeaking = audioMotion.isSpeaking || envelope.active;
   const [draft, setDraft] = useState('');
-  const [appendSeq, setAppendSeq] = useState(0);
   const [suggestFromSpeech, setSuggestFromSpeech] = useState(false);
+  /** ChatPanel registers its insert-at-caret routine here */
+  const insertTextRef = useRef<((text: string) => void) | null>(null);
 
   const appendToDraft = useCallback((text: string) => {
     const value = text.trim();
     if (!value) return;
+    const insert = insertTextRef.current;
+    if (insert) {
+      insert(value);
+      return;
+    }
     setDraft((prev) => (prev.trim() ? `${prev.trim()} ${value}` : value));
-    setAppendSeq((seq) => seq + 1);
   }, []);
+
+  const suggest = useSpeechSuggestions({
+    lang,
+    provider: settings.llm.provider,
+    apiKey,
+    openaiCompatible: settings.llm.openaiCompatible,
+    nanoReady,
+  });
 
   const speechInput = useSpeechInput({
     lang,
     onFinal: (text) => {
       appendToDraft(text);
       setSuggestFromSpeech(true);
+      suggest.request(text);
     },
     stopSpeaking: () => tts.stop(),
   });
@@ -242,9 +257,10 @@ export default function App() {
     (text: string) => {
       stopMic();
       setSuggestFromSpeech(false);
+      suggest.clear();
       void chat.send(text);
     },
-    [stopMic, chat],
+    [stopMic, suggest, chat],
   );
 
   const chatDisabled = !started || voiceMode === 'waiting';
@@ -350,8 +366,13 @@ export default function App() {
             draft={draft}
             onDraftChange={setDraft}
             onDraftAppend={appendToDraft}
+            insertTextRef={insertTextRef}
             showSuggestions={chat.messages.length <= 1 || suggestFromSpeech}
-            appendSeq={appendSeq}
+            suggestions={
+              suggest.items.length > 0
+                ? suggest.items
+                : strings.chat.suggestions
+            }
             micSupported={speechInput.supported}
             micListening={speechInput.listening}
             micInterim={speechInput.interim}

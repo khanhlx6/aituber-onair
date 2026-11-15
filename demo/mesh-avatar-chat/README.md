@@ -38,8 +38,9 @@ published to GitHub Pages.
   The browser's speech recognition (`@aituber-onair/transcription`, Web Speech
   API) transcribes Vietnamese, English and Japanese live. Each finished
   sentence lands in the message box and the mic keeps listening for the next
-  one; three sample sentences appear above the box as quick additions. Nothing
-  is sent until you press Send.
+  one; three correction candidates of the latest utterance appear above the
+  box (Gemini Nano when available) for one-tap fixes. Nothing is sent until
+  you press Send.
 
 ## Run locally
 
