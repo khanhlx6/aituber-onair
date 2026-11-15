@@ -8,6 +8,20 @@ import type { UiLanguage } from './i18n';
  * (Japanese) but ships no Vietnamese voice.
  */
 const PREFERRED_VOICES: Record<UiLanguage, RegExp[]> = {
+  vi: [
+    /hoai\s?my/i, // Windows / Edge: Microsoft HoaiMy (Natural)
+    /google/i, // Chrome on Android / ChromeOS
+    /nam\s?minh/i, // Windows: Microsoft NamMinh
+    /an/i, // Windows: Microsoft An
+    /linh/i, // macOS (premium voice)
+  ],
+  en: [
+    /aria/i, // Edge: Microsoft Aria Online (Natural)
+    /google/i, // Chrome on Android / ChromeOS
+    /jenny/i, // Windows: Microsoft Jenny
+    /samantha/i, // macOS (default voice)
+    /zira/i, // Windows
+  ],
   ja: [
     /nanami/i, // Edge: Microsoft Nanami Online (Natural)
     /google/i, // Chrome on Android / ChromeOS
@@ -17,16 +31,13 @@ const PREFERRED_VOICES: Record<UiLanguage, RegExp[]> = {
     /kyoko/i, // macOS (default voice)
     /haruka/i, // Windows
   ],
-  vi: [
-    /hoai\s?my/i, // Windows / Edge: Microsoft HoaiMy (Natural)
-    /google/i, // Chrome on Android / ChromeOS
-    /nam\s?minh/i, // Windows: Microsoft NamMinh
-    /an/i, // Windows: Microsoft An
-    /linh/i, // macOS (premium voice)
-  ],
 };
 
-const LANG_PREFIX: Record<UiLanguage, string> = { ja: 'ja', vi: 'vi' };
+const LANG_PREFIX: Record<UiLanguage, string> = {
+  vi: 'vi',
+  en: 'en',
+  ja: 'ja',
+};
 
 export function isVoiceFor(
   lang: UiLanguage,

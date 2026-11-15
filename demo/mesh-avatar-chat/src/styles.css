@@ -110,6 +110,42 @@ select {
   cursor: pointer;
 }
 
+.lang-toggle {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--bg);
+}
+
+.lang-toggle button {
+  border: 0;
+  border-radius: 999px;
+  padding: 4px 10px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.lang-toggle button:hover {
+  color: var(--accent);
+}
+
+.lang-toggle button[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.overlay-card .lang-toggle {
+  display: flex;
+  width: fit-content;
+  margin: 0 auto 14px;
+}
+
 .stage {
   display: grid;
   flex: 1;
@@ -863,6 +899,11 @@ select {
 
   .topbar-links a {
     display: none;
+  }
+
+  .topbar .lang-toggle button {
+    padding: 3px 7px;
+    font-size: 11px;
   }
 
   .topbar-credit {

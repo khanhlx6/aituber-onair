@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { type UiLanguage, getStrings, providerLabel } from '../lib/i18n';
 import { type Provider, getProvider } from '../lib/providers';
+import { LanguageToggle } from './LanguageToggle';
 
 interface StartOverlayProps {
   lang: UiLanguage;
   /** Provider saved in this browser; decides where messages go */
   provider: Provider;
   onStart: () => void;
+  onLanguageChange: (language: UiLanguage) => void;
 }
 
 interface Tech {
@@ -59,7 +61,12 @@ const reply = await session.prompt('自己紹介して');`,
 ];
 
 /** First screen. The tap that starts the demo also unlocks audio playback. */
-export function StartOverlay({ lang, provider, onStart }: StartOverlayProps) {
+export function StartOverlay({
+  lang,
+  provider,
+  onStart,
+  onLanguageChange,
+}: StartOverlayProps) {
   const strings = getStrings(lang);
   const info = getProvider(provider);
   const external = info.auth !== 'none';
@@ -75,6 +82,7 @@ export function StartOverlay({ lang, provider, onStart }: StartOverlayProps) {
       aria-labelledby="start-title"
     >
       <div className="overlay-card">
+        <LanguageToggle lang={lang} onChange={onLanguageChange} />
         <p className="overlay-eyebrow">AITuber OnAir</p>
         <h1 id="start-title">{strings.start.title}</h1>
         <p className="overlay-text">{strings.start.lead}</p>
