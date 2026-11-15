@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@aituber-onair/core": "../../packages/core",
+    "@aituber-onair/transcription": "../../packages/transcription",
     "mesh-avatar": "^0.2.0",
     "qrcode.react": "^4.2.0",
     "react": "^19.2.0",

@@ -34,6 +34,10 @@ published to GitHub Pages.
   (top bar and start overlay), and the same choice lives in Settings → 言語 /
   Ngôn ngữ / Language. The Miko voice model speaks Japanese only; other
   languages use the browser voice (Web Speech API).
+- Voice input: the chat box has a microphone, so you can talk instead of type.
+  The browser's speech recognition (`@aituber-onair/transcription`, Web Speech
+  API) transcribes Vietnamese, English and Japanese live, and the finished
+  sentence is sent to Miko right away.
 
 ## Run locally
 
