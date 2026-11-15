@@ -1,4 +1,10 @@
-import { type FormEvent, useEffect, useRef, useState } from 'react';
+import {
+  type Dispatch,
+  type FormEvent,
+  type SetStateAction,
+  useEffect,
+  useRef,
+} from 'react';
 import type { ChatMessage } from '../hooks/useChatCore';
 import { type UiLanguage, getStrings } from '../lib/i18n';
 
@@ -11,6 +17,15 @@ interface ChatPanelProps {
   disabled: boolean;
   /** Shown in the input while the page cannot take messages yet */
   disabledHint?: string;
+  /** Controlled draft text; spoken sentences accumulate here too */
+  draft: string;
+  onDraftChange: Dispatch<SetStateAction<string>>;
+  /** Append text (speech final or sample chip); moves the caret to the end */
+  onDraftAppend: (text: string) => void;
+  /** Show the sample-sentence chips (chat start, or right after speaking) */
+  showSuggestions: boolean;
+  /** Bumped on every append; drives the caret back into the input */
+  appendSeq: number;
   /** Speech input: speak instead of typing (browser speech recognition) */
   micSupported: boolean;
   micListening: boolean;
@@ -28,6 +43,11 @@ export function ChatPanel({
   error,
   disabled,
   disabledHint,
+  draft,
+  onDraftChange,
+  onDraftAppend,
+  showSuggestions,
+  appendSeq,
   micSupported,
   micListening,
   micInterim,
@@ -36,20 +56,37 @@ export function ChatPanel({
   onSend,
 }: ChatPanelProps) {
   const strings = getStrings(lang);
-  const [draft, setDraft] = useState('');
   const listRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     const list = listRef.current;
     if (list) list.scrollTop = list.scrollHeight;
   }, [messages, partial]);
 
+  // Speech lands hands-free: keep the caret in the box so the user can keep
+  // talking (sentence 2, 3...) and press Send when ready.
+  useEffect(() => {
+    if (appendSeq === 0) return;
+    const input = inputRef.current;
+    if (!input) return;
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
+  }, [appendSeq]);
+
+  const liveInterim = micListening ? micInterim.trim() : '';
+  const composed = liveInterim
+    ? draft.trim()
+      ? `${draft.trim()} ${liveInterim}`
+      : liveInterim
+    : draft;
+
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    const text = draft.trim();
-    if (!text || disabled || isProcessing || micListening) return;
+    const text = composed.trim();
+    if (!text || disabled || isProcessing) return;
     onSend(text);
-    setDraft('');
+    onDraftChange('');
   };
 
   const micLabel = micListening
@@ -73,7 +110,7 @@ export function ChatPanel({
         )}
         {error && <div className="chat-error">{error}</div>}
       </div>
-      {messages.length <= 1 && (
+      {showSuggestions && (
         <div className="suggestions">
           {strings.chat.suggestions.map((text) => (
             <button
@@ -81,7 +118,7 @@ export function ChatPanel({
               type="button"
               className="chip"
               disabled={disabled || isProcessing}
-              onClick={() => onSend(text)}
+              onClick={() => onDraftAppend(text)}
             >
               {text}
             </button>
@@ -90,9 +127,10 @@ export function ChatPanel({
       )}
       <form className="chat-form" onSubmit={submit}>
         <input
+          ref={inputRef}
           className="chat-input"
-          value={micListening ? micInterim : draft}
-          onChange={(event) => setDraft(event.target.value)}
+          value={composed}
+          onChange={(event) => onDraftChange(event.target.value)}
           placeholder={
             micListening
               ? strings.chat.micListening
@@ -109,7 +147,11 @@ export function ChatPanel({
         <button
           type="button"
           className={`mic${micListening ? ' mic-listening' : ''}`}
-          onClick={onMicToggle}
+          onPointerDown={(event) => event.preventDefault()}
+          onClick={() => {
+            onMicToggle();
+            inputRef.current?.focus();
+          }}
           disabled={
             !micListening && (disabled || !micSupported || isProcessing)
           }
@@ -147,7 +189,7 @@ export function ChatPanel({
         <button
           type="submit"
           className="send"
-          disabled={disabled || isProcessing || micListening || !draft.trim()}
+          disabled={disabled || isProcessing || !composed.trim()}
         >
           {strings.chat.send}
         </button>
