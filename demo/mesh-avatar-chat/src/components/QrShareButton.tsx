@@ -64,7 +64,6 @@ export function QrShareButton({ lang }: QrShareButtonProps) {
                 marginSize={4}
               />
               <p className="hint">{strings.qr.hint}</p>
-              <p className="qr-url">{url}</p>
             </div>
           </div>
         </div>
