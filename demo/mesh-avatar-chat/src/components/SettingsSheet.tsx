@@ -301,13 +301,7 @@ export function SettingsSheet({
 
         <p className="credits">
           {strings.settings.creditsLead}
-          <a
-            href="https://github.com/ayutaz/piper-plus"
-            target="_blank"
-            rel="noreferrer"
-          >
-            piper-plus
-          </a>
+          {'piper-plus'}
           {strings.settings.creditsTail}
         </p>
       </div>

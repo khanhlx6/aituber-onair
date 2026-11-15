@@ -62,7 +62,7 @@ export function ChatPanel({
 }: ChatPanelProps) {
   const strings = getStrings(lang);
   const listRef = useRef<HTMLDivElement | null>(null);
-  const inputRef = useRef<HTMLInputElement | null>(null);
+  const inputRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
     const list = listRef.current;
@@ -75,6 +75,22 @@ export function ChatPanel({
     ? `${draft && !draft.endsWith(' ') ? ' ' : ''}${liveInterim}`
     : '';
   const composed = `${draft}${suffix}`;
+
+  // The box starts at 2 rows and grows with the text, up to 5 rows.
+  useEffect(() => {
+    const resize = () => {
+      const el = inputRef.current;
+      if (!el) return;
+      el.style.height = 'auto';
+      const lineHeight = parseFloat(getComputedStyle(el).lineHeight) || 24;
+      const max = lineHeight * 5;
+      el.style.height = `${Math.min(el.scrollHeight, max)}px`;
+      el.style.overflowY = el.scrollHeight > max ? 'auto' : 'hidden';
+    };
+    resize();
+    window.addEventListener('resize', resize);
+    return () => window.removeEventListener('resize', resize);
+  }, [composed]);
 
   /**
    * Editor-style insert: replaces the selection (or sits at the caret), so a
@@ -126,7 +142,7 @@ export function ChatPanel({
     input.setSelectionRange(input.value.length, input.value.length);
   };
 
-  const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
     const value = event.target.value;
     // The trailing interim suffix is not user text; edits stay in the draft.
     if (suffix && value.endsWith(suffix)) {
@@ -136,12 +152,16 @@ export function ChatPanel({
     onDraftChange(value);
   };
 
-  const submit = (event: FormEvent) => {
-    event.preventDefault();
+  const sendNow = () => {
     const text = composed.trim();
     if (!text || disabled || isProcessing) return;
     onSend(text);
     onDraftChange('');
+  };
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    sendNow();
   };
 
   const micLabel = micListening
@@ -182,11 +202,18 @@ export function ChatPanel({
         </div>
       )}
       <form className="chat-form" onSubmit={submit}>
-        <input
+        <textarea
           ref={inputRef}
           className="chat-input"
+          rows={2}
           value={composed}
           onChange={handleChange}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' && !event.shiftKey) {
+              event.preventDefault();
+              sendNow();
+            }
+          }}
           placeholder={
             micListening
               ? strings.chat.micListening

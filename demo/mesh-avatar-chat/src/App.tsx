@@ -18,9 +18,6 @@ import { useTts } from './hooks/useTts';
 import { type UiLanguage, getStrings } from './lib/i18n';
 import { listVoicesFor } from './lib/webSpeechVoice';
 
-const REPO_URL = 'https://github.com/shinshin86/aituber-onair';
-const STUDIO_URL = 'https://shinshin86.github.io/mesh-avatar-studio/';
-
 /** Phones and metered connections should not download about 150MB on their own. */
 function shouldAutoPreparePiper(): boolean {
   const connection = (
@@ -297,17 +294,7 @@ export default function App() {
   return (
     <div className="app">
       <header className="topbar">
-        <a className="brand" href={REPO_URL} target="_blank" rel="noreferrer">
-          AITuber OnAir
-        </a>
-        <a
-          className="topbar-credit"
-          href={STUDIO_URL}
-          target="_blank"
-          rel="noreferrer"
-        >
-          Created with <strong>Mesh Avatar Studio</strong>
-        </a>
+        <span className="brand">AITuber OnAir</span>
         <nav className="topbar-links" aria-label={strings.app.navLinks}>
           <LanguageToggle lang={lang} onChange={handleLanguageChange} />
           <QrShareButton lang={lang} />
@@ -380,11 +367,6 @@ export default function App() {
             onMicToggle={speechInput.toggle}
             onSend={handleSend}
           />
-          <p className="stack-line">
-            Built with <code>@aituber-onair/core</code> ·{' '}
-            <code>@aituber-onair/voice</code> · <code>mesh-avatar</code> ·{' '}
-            <code>@aituber-onair/transcription</code>
-          </p>
         </section>
       </main>
 
