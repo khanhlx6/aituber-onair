@@ -1,7 +1,7 @@
 import { PiperPlusEngine, WebSpeechEngine } from '@aituber-onair/core';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { UiLanguage } from '../lib/i18n';
-import { pickVoiceFor } from '../lib/webSpeechVoice';
+import { pickVoiceFor, SPEECH_LANG } from '../lib/webSpeechVoice';
 import type { VoiceKind } from './useSettings';
 
 export type PiperStatus = 'idle' | 'loading' | 'ready' | 'error' | 'missing';
@@ -28,13 +28,6 @@ const PIPER_PREFETCH_FILES = [
 ];
 const WEB_SPEECH_RATE = 1.0;
 const WEB_SPEECH_PITCH = 1.0;
-
-/** BCP-47 tag handed to the Web Speech API per UI language */
-const SPEECH_LANG: Record<UiLanguage, string> = {
-  vi: 'vi-VN',
-  en: 'en-US',
-  ja: 'ja-JP',
-};
 
 export interface SpeakOptions {
   voice: VoiceKind;

@@ -41,6 +41,15 @@ const ja = {
     thinking: '考え中…',
     placeholder: 'ミコに話しかける',
     message: 'メッセージ',
+    micListen: '入力ではなく話す',
+    micStop: '聞き取りを停止',
+    micListening: '聞き取り中…そのまま話してください',
+    micUnsupported: 'このブラウザは音声入力に対応していません',
+    micErrorPermission:
+      'マイクの使用が許可されていません。ブラウザの設定でこのサイトのマイクを許可してから、もう一度お試しください。',
+    micErrorNoSpeech:
+      '音声を認識できませんでした。マイクを押して、もう少し大きな声で話してください。',
+    micError: '音声入力でエラーが発生しました。もう一度お試しください。',
     send: '送信',
   },
   voice: {
@@ -230,6 +239,14 @@ const vi: Strings = {
     thinking: 'Đang nghĩ…',
     placeholder: 'Nói chuyện với Miko',
     message: 'Tin nhắn',
+    micListen: 'Nói thay vì gõ',
+    micStop: 'Dừng nghe',
+    micListening: 'Đang nghe… cứ nói tự nhiên nhé',
+    micUnsupported: 'Trình duyệt này chưa hỗ trợ nhập bằng giọng nói',
+    micErrorPermission:
+      'Chưa cho phép dùng micro. Hãy cho phép micro cho trang này trong cài đặt trình duyệt rồi thử lại.',
+    micErrorNoSpeech: 'Không nghe thấy gì. Nhấn micro và nói to hơn nhé.',
+    micError: 'Nhập bằng giọng nói gặp lỗi. Thử lại nhé.',
     send: 'Gửi',
   },
   voice: {
@@ -426,6 +443,14 @@ const en: Strings = {
     thinking: 'Thinking…',
     placeholder: 'Talk to Miko',
     message: 'Message',
+    micListen: 'Speak instead of typing',
+    micStop: 'Stop listening',
+    micListening: 'Listening… just speak',
+    micUnsupported: 'This browser does not support voice input',
+    micErrorPermission:
+      'Microphone permission denied. Allow microphone access for this site in your browser settings, then try again.',
+    micErrorNoSpeech: 'Nothing heard. Tap the mic and speak up.',
+    micError: 'Voice input hit an error. Please try again.',
     send: 'Send',
   },
   voice: {

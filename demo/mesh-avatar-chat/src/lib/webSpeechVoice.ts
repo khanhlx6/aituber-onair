@@ -1,6 +1,13 @@
 import { getWebSpeechVoiceList } from '@aituber-onair/core';
 import type { UiLanguage } from './i18n';
 
+/** BCP-47 tag handed to the Web Speech API per UI language */
+export const SPEECH_LANG: Record<UiLanguage, string> = {
+  vi: 'vi-VN',
+  en: 'en-US',
+  ja: 'ja-JP',
+};
+
 /**
  * Voices per language in rough order of quality. Web Speech only exposes what
  * the browser and OS ship, so the best available voice differs per environment:

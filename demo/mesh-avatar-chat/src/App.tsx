@@ -12,6 +12,7 @@ import { type AssistantReply, useChatCore } from './hooks/useChatCore';
 import { useGeminiNano } from './hooks/useGeminiNano';
 import { type DemoSettings, useSettings } from './hooks/useSettings';
 import { useSpeechEnvelope } from './hooks/useSpeechEnvelope';
+import { useSpeechInput } from './hooks/useSpeechInput';
 import { useTts } from './hooks/useTts';
 import { type UiLanguage, getStrings } from './lib/i18n';
 import { listVoicesFor } from './lib/webSpeechVoice';
@@ -209,6 +210,21 @@ export default function App() {
 
   const voiceLevel = Math.max(audioMotion.voiceLevel, envelope.level);
   const isSpeaking = audioMotion.isSpeaking || envelope.active;
+  const speechInput = useSpeechInput({
+    lang,
+    onFinal: (text) => {
+      void chat.send(text);
+    },
+    stopSpeaking: () => tts.stop(),
+  });
+  const micErrorText = speechInput.error
+    ? speechInput.error === 'permission-denied'
+      ? strings.chat.micErrorPermission
+      : speechInput.error === 'no-speech'
+        ? strings.chat.micErrorNoSpeech
+        : strings.chat.micError
+    : '';
+
   const chatDisabled = !started || voiceMode === 'waiting';
 
   const nanoBanner = useMemo(() => {
@@ -309,11 +325,17 @@ export default function App() {
             error={chat.error}
             disabled={chatDisabled}
             disabledHint={strings.app.chatDisabledHint}
+            micSupported={speechInput.supported}
+            micListening={speechInput.listening}
+            micInterim={speechInput.interim}
+            micErrorText={micErrorText}
+            onMicToggle={speechInput.toggle}
             onSend={(text) => void chat.send(text)}
           />
           <p className="stack-line">
             Built with <code>@aituber-onair/core</code> ·{' '}
-            <code>@aituber-onair/voice</code> · <code>mesh-avatar</code>
+            <code>@aituber-onair/voice</code> · <code>mesh-avatar</code> ·{' '}
+            <code>@aituber-onair/transcription</code>
           </p>
         </section>
       </main>

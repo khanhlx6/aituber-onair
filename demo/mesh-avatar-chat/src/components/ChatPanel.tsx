@@ -11,6 +11,12 @@ interface ChatPanelProps {
   disabled: boolean;
   /** Shown in the input while the page cannot take messages yet */
   disabledHint?: string;
+  /** Speech input: speak instead of typing (browser speech recognition) */
+  micSupported: boolean;
+  micListening: boolean;
+  micInterim: string;
+  micErrorText: string;
+  onMicToggle: () => void;
   onSend: (text: string) => void;
 }
 
@@ -22,6 +28,11 @@ export function ChatPanel({
   error,
   disabled,
   disabledHint,
+  micSupported,
+  micListening,
+  micInterim,
+  micErrorText,
+  onMicToggle,
   onSend,
 }: ChatPanelProps) {
   const strings = getStrings(lang);
@@ -36,10 +47,16 @@ export function ChatPanel({
   const submit = (event: FormEvent) => {
     event.preventDefault();
     const text = draft.trim();
-    if (!text || disabled || isProcessing) return;
+    if (!text || disabled || isProcessing || micListening) return;
     onSend(text);
     setDraft('');
   };
+
+  const micLabel = micListening
+    ? strings.chat.micStop
+    : micSupported
+      ? strings.chat.micListen
+      : strings.chat.micUnsupported;
 
   return (
     <section className="chat" aria-label={strings.chat.label}>
@@ -74,24 +91,72 @@ export function ChatPanel({
       <form className="chat-form" onSubmit={submit}>
         <input
           className="chat-input"
-          value={draft}
+          value={micListening ? micInterim : draft}
           onChange={(event) => setDraft(event.target.value)}
           placeholder={
-            disabled && disabledHint ? disabledHint : strings.chat.placeholder
+            micListening
+              ? strings.chat.micListening
+              : disabled && disabledHint
+                ? disabledHint
+                : strings.chat.placeholder
           }
           aria-label={strings.chat.message}
           disabled={disabled}
+          readOnly={micListening}
           autoComplete="off"
           enterKeyHint="send"
         />
         <button
+          type="button"
+          className={`mic${micListening ? ' mic-listening' : ''}`}
+          onClick={onMicToggle}
+          disabled={
+            !micListening && (disabled || !micSupported || isProcessing)
+          }
+          title={micLabel}
+          aria-label={micLabel}
+          aria-pressed={micListening}
+        >
+          {micListening ? (
+            <svg
+              viewBox="0 0 24 24"
+              width="16"
+              height="16"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <rect x="7" y="7" width="10" height="10" rx="2" />
+            </svg>
+          ) : (
+            <svg
+              viewBox="0 0 24 24"
+              width="18"
+              height="18"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              aria-hidden="true"
+            >
+              <rect x="9" y="3" width="6" height="11" rx="3" />
+              <path d="M5 11a7 7 0 0 0 14 0" />
+              <line x1="12" y1="18" x2="12" y2="21" />
+            </svg>
+          )}
+        </button>
+        <button
           type="submit"
           className="send"
-          disabled={disabled || isProcessing || !draft.trim()}
+          disabled={disabled || isProcessing || micListening || !draft.trim()}
         >
           {strings.chat.send}
         </button>
       </form>
+      {micErrorText && (
+        <p className="mic-status" role="status">
+          {micErrorText}
+        </p>
+      )}
     </section>
   );
 }

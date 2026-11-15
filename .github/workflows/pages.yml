@@ -50,6 +50,7 @@ jobs:
           npm -w @aituber-onair/chat run build
           npm -w @aituber-onair/voice run build
           npm -w @aituber-onair/core run build
+          npm -w @aituber-onair/transcription run build:package
 
       - name: Install demo dependencies
         run: npm --prefix demo/mesh-avatar-chat ci
