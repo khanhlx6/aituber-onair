@@ -36,8 +36,10 @@ published to GitHub Pages.
   languages use the browser voice (Web Speech API).
 - Voice input: the chat box has a microphone, so you can talk instead of type.
   The browser's speech recognition (`@aituber-onair/transcription`, Web Speech
-  API) transcribes Vietnamese, English and Japanese live, and the finished
-  sentence is sent to Miko right away.
+  API) transcribes Vietnamese, English and Japanese live. Each finished
+  sentence lands in the message box and the mic keeps listening for the next
+  one; three sample sentences appear above the box as quick additions. Nothing
+  is sent until you press Send.
 
 ## Run locally
 

@@ -210,13 +210,26 @@ export default function App() {
 
   const voiceLevel = Math.max(audioMotion.voiceLevel, envelope.level);
   const isSpeaking = audioMotion.isSpeaking || envelope.active;
+  const [draft, setDraft] = useState('');
+  const [appendSeq, setAppendSeq] = useState(0);
+  const [suggestFromSpeech, setSuggestFromSpeech] = useState(false);
+
+  const appendToDraft = useCallback((text: string) => {
+    const value = text.trim();
+    if (!value) return;
+    setDraft((prev) => (prev.trim() ? `${prev.trim()} ${value}` : value));
+    setAppendSeq((seq) => seq + 1);
+  }, []);
+
   const speechInput = useSpeechInput({
     lang,
     onFinal: (text) => {
-      void chat.send(text);
+      appendToDraft(text);
+      setSuggestFromSpeech(true);
     },
     stopSpeaking: () => tts.stop(),
   });
+  const { stop: stopMic } = speechInput;
   const micErrorText = speechInput.error
     ? speechInput.error === 'permission-denied'
       ? strings.chat.micErrorPermission
@@ -224,6 +237,15 @@ export default function App() {
         ? strings.chat.micErrorNoSpeech
         : strings.chat.micError
     : '';
+
+  const handleSend = useCallback(
+    (text: string) => {
+      stopMic();
+      setSuggestFromSpeech(false);
+      void chat.send(text);
+    },
+    [stopMic, chat],
+  );
 
   const chatDisabled = !started || voiceMode === 'waiting';
 
@@ -325,12 +347,17 @@ export default function App() {
             error={chat.error}
             disabled={chatDisabled}
             disabledHint={strings.app.chatDisabledHint}
+            draft={draft}
+            onDraftChange={setDraft}
+            onDraftAppend={appendToDraft}
+            showSuggestions={chat.messages.length <= 1 || suggestFromSpeech}
+            appendSeq={appendSeq}
             micSupported={speechInput.supported}
             micListening={speechInput.listening}
             micInterim={speechInput.interim}
             micErrorText={micErrorText}
             onMicToggle={speechInput.toggle}
-            onSend={(text) => void chat.send(text)}
+            onSend={handleSend}
           />
           <p className="stack-line">
             Built with <code>@aituber-onair/core</code> ·{' '}
