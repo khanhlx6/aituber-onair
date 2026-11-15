@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChatPanel } from './components/ChatPanel';
+import { FreeVoiceToggle } from './components/FreeVoiceToggle';
 import { LanguageToggle } from './components/LanguageToggle';
 import { MeshAvatarCanvas } from './components/MeshAvatarCanvas';
+import { QrShareButton } from './components/QrShareButton';
 import { SettingsSheet } from './components/SettingsSheet';
 import { StartOverlay } from './components/StartOverlay';
 import { type VoiceMode, VoiceStage } from './components/VoiceStage';
@@ -79,6 +81,7 @@ export default function App() {
         setEmotion({ tag: reply.emotion, seq: emotionSeqRef.current });
       }
       const current = settingsRef.current.tts;
+      if (!current.enabled) return;
       void tts.speak(reply.text, {
         voice: current.engine,
         lang,
@@ -133,6 +136,15 @@ export default function App() {
   const handleLanguageChange = useCallback(
     (language: UiLanguage) => handleUpdateUi({ language }),
     [handleUpdateUi],
+  );
+
+  /** Free browser-voice toggle: off means replies appear as text only. */
+  const handleVoiceEnabledChange = useCallback(
+    (enabled: boolean) => {
+      updateTts({ enabled });
+      if (!enabled) tts.stop();
+    },
+    [tts, updateTts],
   );
 
   const voiceMode: VoiceMode = !mikoVoice
@@ -244,9 +256,7 @@ export default function App() {
         </a>
         <nav className="topbar-links" aria-label={strings.app.navLinks}>
           <LanguageToggle lang={lang} onChange={handleLanguageChange} />
-          <a href={REPO_URL} target="_blank" rel="noreferrer">
-            GitHub
-          </a>
+          <QrShareButton lang={lang} />
           <button
             type="button"
             className="icon-button"
@@ -270,6 +280,13 @@ export default function App() {
             isSpeaking={isSpeaking}
             emotion={emotion}
           />
+          <div className="voice-toggle-row">
+            <FreeVoiceToggle
+              lang={lang}
+              enabled={settings.tts.enabled}
+              onChange={handleVoiceEnabledChange}
+            />
+          </div>
           <VoiceStage
             lang={lang}
             mikoVoice={mikoVoice}
@@ -305,8 +322,10 @@ export default function App() {
         <StartOverlay
           lang={lang}
           provider={settings.llm.provider}
+          voiceEnabled={settings.tts.enabled}
           onStart={handleStart}
           onLanguageChange={handleLanguageChange}
+          onVoiceEnabledChange={handleVoiceEnabledChange}
         />
       )}
       {settingsOpen && (
@@ -322,6 +341,7 @@ export default function App() {
           onSetApiKey={setApiKey}
           onSetOpenaiCompatible={setOpenaiCompatible}
           onPreparePiper={() => void tts.preparePiper()}
+          onVoiceEnabledChange={handleVoiceEnabledChange}
           onReset={handleReset}
           onClearStored={clearStored}
           onClearVoiceCache={tts.clearPiperCache}

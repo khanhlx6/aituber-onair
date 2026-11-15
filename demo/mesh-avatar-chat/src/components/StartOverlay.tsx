@@ -1,14 +1,19 @@
 import { useState } from 'react';
 import { type UiLanguage, getStrings, providerLabel } from '../lib/i18n';
 import { type Provider, getProvider } from '../lib/providers';
+import { FreeVoiceToggle } from './FreeVoiceToggle';
 import { LanguageToggle } from './LanguageToggle';
+import { QrShareButton } from './QrShareButton';
 
 interface StartOverlayProps {
   lang: UiLanguage;
   /** Provider saved in this browser; decides where messages go */
   provider: Provider;
+  /** Whether the free browser voice speaks replies */
+  voiceEnabled: boolean;
   onStart: () => void;
   onLanguageChange: (language: UiLanguage) => void;
+  onVoiceEnabledChange: (enabled: boolean) => void;
 }
 
 interface Tech {
@@ -64,8 +69,10 @@ const reply = await session.prompt('自己紹介して');`,
 export function StartOverlay({
   lang,
   provider,
+  voiceEnabled,
   onStart,
   onLanguageChange,
+  onVoiceEnabledChange,
 }: StartOverlayProps) {
   const strings = getStrings(lang);
   const info = getProvider(provider);
@@ -82,7 +89,10 @@ export function StartOverlay({
       aria-labelledby="start-title"
     >
       <div className="overlay-card">
-        <LanguageToggle lang={lang} onChange={onLanguageChange} />
+        <div className="overlay-top">
+          <LanguageToggle lang={lang} onChange={onLanguageChange} />
+          <QrShareButton lang={lang} />
+        </div>
         <p className="overlay-eyebrow">AITuber OnAir</p>
         <h1 id="start-title">{strings.start.title}</h1>
         <p className="overlay-text">{strings.start.lead}</p>
@@ -167,6 +177,14 @@ export function StartOverlay({
             </section>
           </div>
         )}
+
+        <div className="overlay-voice-toggle">
+          <FreeVoiceToggle
+            lang={lang}
+            enabled={voiceEnabled}
+            onChange={onVoiceEnabledChange}
+          />
+        </div>
 
         <p className="overlay-note">
           {strings.start.noteSound}

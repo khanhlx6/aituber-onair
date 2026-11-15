@@ -20,7 +20,7 @@ export type VoiceKind = 'webSpeech' | 'piperPlus';
  * stored under this key is ignored.
  */
 export interface DemoSettings {
-  version: 2;
+  version: 3;
   ui: {
     /** Interface / conversation language */
     language: UiLanguage;
@@ -36,6 +36,8 @@ export interface DemoSettings {
   };
   tts: {
     engine: VoiceKind;
+    /** Whether replies are spoken at all (the free browser voice toggle) */
+    enabled: boolean;
     /** Web Speech voice name; empty picks the best Japanese voice automatically */
     webSpeechVoice: string;
     /** Speaking speed of the Miko voice (piper-plus length scale inverse) */
@@ -50,7 +52,7 @@ export const PIPER_SPEED_RANGE = { min: 0.7, max: 1.2, step: 0.05 };
 
 function makeDefaults(): DemoSettings {
   return {
-    version: 2,
+    version: 3,
     ui: { language: DEFAULT_UI_LANGUAGE },
     llm: {
       provider: 'gemini-nano',
@@ -59,6 +61,7 @@ function makeDefaults(): DemoSettings {
     },
     tts: {
       engine: 'webSpeech',
+      enabled: true,
       webSpeechVoice: '',
       piperSpeed: DEFAULT_PIPER_SPEED,
     },
@@ -73,9 +76,11 @@ function migrate(raw: unknown): DemoSettings {
   const stored = raw as Partial<Omit<DemoSettings, 'version'>> & {
     version?: number;
   };
-  if (stored.version !== 1 && stored.version !== 2) return makeDefaults();
+  if (stored.version !== 1 && stored.version !== 2 && stored.version !== 3) {
+    return makeDefaults();
+  }
   return {
-    version: 2,
+    version: 3,
     ui: { ...makeDefaults().ui, ...stored.ui },
     llm: {
       ...DEFAULT_SETTINGS.llm,

@@ -18,6 +18,48 @@ const MODEL_IO = {
   expectedOutputs: [{ type: 'text', languages: ['ja'] }],
 };
 
+/** Known-good Prompt API languages; used when the UI language is unsupported. */
+export const NANO_FALLBACK_LANGUAGES = {
+  inputs: ['ja', 'en'],
+  outputs: ['ja'],
+};
+
+export interface NanoLanguages {
+  inputs: string[];
+  outputs: string[];
+}
+
+/**
+ * Resolve the `expectedInputs`/`expectedOutputs` languages for session
+ * creation. Declaring the UI language (e.g. 'vi') lets the browser download
+ * language support material and improves replies in that language; when the
+ * browser cannot support it the declaration would fail session creation, so
+ * fall back to the known-good set and let the prompt steer the language.
+ */
+export async function resolveNanoLanguages(
+  code: string,
+): Promise<NanoLanguages> {
+  const preferred: NanoLanguages = {
+    inputs: [code, 'ja', 'en'].filter(
+      (item, index, all) => all.indexOf(item) === index,
+    ),
+    outputs: [code, 'ja', 'en'].filter(
+      (item, index, all) => all.indexOf(item) === index,
+    ),
+  };
+  const lm = getLanguageModel();
+  if (!lm) return NANO_FALLBACK_LANGUAGES;
+  try {
+    const result = await lm.availability({
+      expectedInputs: [{ type: 'text', languages: preferred.inputs }],
+      expectedOutputs: [{ type: 'text', languages: preferred.outputs }],
+    });
+    return result === 'unavailable' ? NANO_FALLBACK_LANGUAGES : preferred;
+  } catch {
+    return NANO_FALLBACK_LANGUAGES;
+  }
+}
+
 function getLanguageModel(): LanguageModelAPI | undefined {
   return (globalThis as Record<string, unknown>).LanguageModel as
     | LanguageModelAPI

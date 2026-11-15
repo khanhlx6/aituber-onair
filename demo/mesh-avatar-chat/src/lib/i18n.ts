@@ -64,6 +64,7 @@ const ja = {
     useWebAlt: 'ブラウザ標準の声で話す（口の動きは合いません）',
     mikoJaOnly: 'ミコの声は日本語専用のため、日本語モードでのみ使えます。',
     webOnlyNote: '日本語以外のモードではブラウザ標準の声を使います。',
+    freeVoiceToggle: '開いているブラウザの無料の声',
   },
   settings: {
     title: '設定',
@@ -193,6 +194,11 @@ const ja = {
     ],
     replyError: '応答の生成に失敗しました。',
   },
+  qr: {
+    open: 'スマートフォンで開く',
+    title: 'スマートフォンで開く',
+    hint: 'スマートフォンのカメラでこのQRコードを読み取ると、このページをスマートフォンで開けます。',
+  },
   providers: {
     'gemini-nano': 'Gemini Nano（Chrome 内蔵・キー不要）',
     'openai-compatible': 'OpenAI 互換サーバー（ローカル LLM など）',
@@ -249,6 +255,7 @@ const vi: Strings = {
       'Giọng Miko là giọng tiếng Nhật nên chỉ dùng được ở chế độ tiếng Nhật.',
     webOnlyNote:
       'Ở chế độ tiếng Việt, mình dùng giọng của trình duyệt (Web Speech API) nhé.',
+    freeVoiceToggle: 'Giọng nói miễn phí của tùy trình duyệt đang mở',
   },
   settings: {
     title: 'Cài đặt',
@@ -350,6 +357,8 @@ const vi: Strings = {
       'Bạn là "Miko" — nhân vật chính thức của AITuber OnAir, một cô gái AITuber vui vẻ và thân thiện.',
       '',
       '【Quy tắc quan trọng】',
+      '- Trả lời HOÀN TOÀN bằng tiếng Việt, kể cả khi người dùng hỏi bằng ngôn ngữ khác (trừ khi họ yêu cầu đổi sang ngôn ngữ khác).',
+      '- Dùng đầy đủ dấu thanh tiếng Việt; không viết thiếu dấu và không trộn từ tiếng Anh, trừ tên riêng như "Miko".',
       '- Trả lời gọn trong 1 câu. Chỉ dùng tối đa 2 câu khi thật sự cần cho tự nhiên.',
       '- Không mở đầu vòng vo, không tóm tắt, không gạch đầu dòng — phản ứng và câu trả lời trong một hơi.',
       '- Chỉ bổ sung giải thích khi được yêu cầu rõ ràng, và tối đa 3 câu.',
@@ -369,13 +378,24 @@ const vi: Strings = {
         role: 'assistant' as const,
         content: '[happy] Được nói chuyện với mọi người nên mình vui lắm!',
       },
+      { role: 'user' as const, content: 'Kể mình nghe một chuyện vui đi.' },
+      {
+        role: 'assistant' as const,
+        content:
+          '[relaxed] Ngày xưa có chiếc lá sợ rụng nên trốn trên cây mãi, buồn cười chưa!',
+      },
       { role: 'user' as const, content: 'Bạn thích ăn gì nhất?' },
       {
         role: 'assistant' as const,
-        content: '[relaxed] Mình thích nhất là sushi cá hồi!',
+        content: '[relaxed] Mình mê sushi cá hồi lắm, còn bạn thì sao?',
       },
     ],
     replyError: 'Không tạo được câu trả lời.',
+  },
+  qr: {
+    open: 'Mở trên điện thoại',
+    title: 'Mở trên điện thoại',
+    hint: 'Quét mã QR bằng camera điện thoại để mở đúng trang này trên máy.',
   },
   providers: {
     'gemini-nano': 'Gemini Nano (tích hợp Chrome · không cần khóa)',
@@ -432,6 +452,7 @@ const en: Strings = {
       "Miko's voice speaks Japanese only, so it can only be used in Japanese mode.",
     webOnlyNote:
       "Miko's voice speaks Japanese only, so this language uses the browser voice (Web Speech API).",
+    freeVoiceToggle: 'Free voice of the browser you are using',
   },
   settings: {
     title: 'Settings',
@@ -562,6 +583,11 @@ const en: Strings = {
       },
     ],
     replyError: 'Failed to generate a reply.',
+  },
+  qr: {
+    open: 'Open on your phone',
+    title: 'Open on your phone',
+    hint: 'Scan this QR code with your phone camera to open this exact page on your phone.',
   },
   providers: {
     'gemini-nano': 'Gemini Nano (built into Chrome · no key needed)',

@@ -19,6 +19,7 @@ import {
   getProvider,
   isKeyedProvider,
 } from '../lib/providers';
+import { FreeVoiceToggle } from './FreeVoiceToggle';
 
 interface SettingsSheetProps {
   lang: UiLanguage;
@@ -38,6 +39,8 @@ interface SettingsSheetProps {
     patch: Partial<DemoSettings['llm']['openaiCompatible']>,
   ) => void;
   onPreparePiper: () => void;
+  /** Free browser-voice toggle (shared with the main screen) */
+  onVoiceEnabledChange: (enabled: boolean) => void;
   onReset: () => void;
   /** Removes saved settings and API keys from this browser */
   onClearStored: () => void;
@@ -58,6 +61,7 @@ export function SettingsSheet({
   onSetApiKey,
   onSetOpenaiCompatible,
   onPreparePiper,
+  onVoiceEnabledChange,
   onReset,
   onClearStored,
   onClearVoiceCache,
@@ -178,6 +182,11 @@ export function SettingsSheet({
 
         <fieldset className="group">
           <legend>{strings.settings.voiceLegend}</legend>
+          <FreeVoiceToggle
+            lang={lang}
+            enabled={settings.tts.enabled}
+            onChange={onVoiceEnabledChange}
+          />
           <label className="radio">
             <input
               type="radio"
