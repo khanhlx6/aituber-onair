@@ -6,6 +6,11 @@ import {
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { type UiLanguage, getStrings } from '../lib/i18n';
 import { type Provider, getProvider } from '../lib/providers';
+import {
+  NANO_FALLBACK_LANGUAGES,
+  type NanoLanguages,
+  resolveNanoLanguages,
+} from './useGeminiNano';
 
 export interface ChatMessage {
   id: string;
@@ -58,8 +63,22 @@ export function useChatCore({
   const [partial, setPartial] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState('');
+  /** Prompt API languages for the UI language, with a safe fallback */
+  const [nanoLanguages, setNanoLanguages] = useState<NanoLanguages>(
+    NANO_FALLBACK_LANGUAGES,
+  );
   const onReplyRef = useRef(onReply);
   const fallbackRef = useRef(fallbackReply);
+
+  useEffect(() => {
+    let cancelled = false;
+    void resolveNanoLanguages(lang).then((resolved) => {
+      if (!cancelled) setNanoLanguages(resolved);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [lang]);
 
   useEffect(() => {
     onReplyRef.current = onReply;
@@ -103,6 +122,10 @@ export function useChatCore({
             providerOptions: {
               // Reuse one Prompt API session instead of rebuilding it per turn.
               sessionMode: 'persistent' as const,
+              // Declaring the UI language lets the browser download language
+              // support material (improves e.g. Vietnamese replies).
+              expectedInputLanguages: nanoLanguages.inputs,
+              expectedOutputLanguages: nanoLanguages.outputs,
               // Few-shot turns: Gemini Nano follows the reply length and the
               // leading emotion tag far more reliably when it sees examples.
               initialPrompts: strings.prompt.nanoExamples.map((example) => ({
@@ -173,6 +196,7 @@ export function useChatCore({
     apiKey,
     canChat,
     lang,
+    nanoLanguages,
     provider,
     systemPrompt,
     info.auth,
