@@ -14,9 +14,11 @@ back with voice, lip sync and expressions. Nothing runs on a server; the page is
 published to GitHub Pages.
 
 - Chat: Chrome's built-in Gemini Nano (no key), any of the API providers
-  `@aituber-onair/chat` can call from a browser (OpenAI, Gemini, Claude, xAI,
-  Z.ai, Kimi, DeepSeek, Mistral, PLaMo, OpenRouter) with your own API key, or
-  an OpenAI-compatible server such as a local LLM. Providers whose APIs cannot
+  `@aituber-onair/chat` can call from a browser (OpenAI, Gemini, Groq, Claude,
+  xAI, Z.ai, Kimi, DeepSeek, Mistral, PLaMo, OpenRouter) with your own API key,
+  or an OpenAI-compatible server such as a local LLM. On phones and anywhere
+  Gemini Nano is missing, a free no-key AI answers instead; adding a free
+  Groq or Gemini API key in Settings upgrades the quality. Providers whose APIs cannot
   be called from a browser are listed but disabled (currently Sakana AI). Keys
   and settings stay in this browser's local storage.
 - Voice: the Web Speech API plays immediately. In the background the page

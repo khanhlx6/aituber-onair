@@ -3,6 +3,7 @@ export type Provider =
   | 'gemini-nano'
   | 'openai'
   | 'gemini'
+  | 'groq'
   | 'claude'
   | 'xai'
   | 'zai'
@@ -29,6 +30,10 @@ export interface ProviderInfo {
   browser: boolean;
 }
 
+/** Groq free tier (the free stack used by many AI demos); OpenAI-compatible. */
+export const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1';
+export const GROQ_MODEL = 'openai/gpt-oss-120b';
+
 export const PROVIDERS: ProviderInfo[] = [
   {
     id: 'gemini-nano',
@@ -38,6 +43,12 @@ export const PROVIDERS: ProviderInfo[] = [
   },
   { id: 'openai', label: 'OpenAI', auth: 'apiKey', browser: true },
   { id: 'gemini', label: 'Google Gemini', auth: 'apiKey', browser: true },
+  {
+    id: 'groq',
+    label: 'Groq (free tier API key)',
+    auth: 'apiKey',
+    browser: true,
+  },
   { id: 'claude', label: 'Anthropic Claude', auth: 'apiKey', browser: true },
   { id: 'xai', label: 'xAI', auth: 'apiKey', browser: true },
   { id: 'zai', label: 'Z.ai', auth: 'apiKey', browser: true },

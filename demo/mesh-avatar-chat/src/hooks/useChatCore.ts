@@ -4,8 +4,14 @@ import {
   resolveOpenAICompatibleEndpoint,
 } from '@aituber-onair/core';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { freeAiChat, type FreeAiTurn } from '../lib/freeAi';
 import { type UiLanguage, getStrings } from '../lib/i18n';
-import { type Provider, getProvider } from '../lib/providers';
+import {
+  GROQ_ENDPOINT,
+  GROQ_MODEL,
+  type Provider,
+  getProvider,
+} from '../lib/providers';
 import {
   NANO_FALLBACK_LANGUAGES,
   type NanoLanguages,
@@ -69,6 +75,8 @@ export function useChatCore({
   );
   const onReplyRef = useRef(onReply);
   const fallbackRef = useRef(fallbackReply);
+  const systemPromptRef = useRef(systemPrompt);
+  const messagesRef = useRef<ChatMessage[]>(messages);
 
   useEffect(() => {
     let cancelled = false;
@@ -83,27 +91,34 @@ export function useChatCore({
   useEffect(() => {
     onReplyRef.current = onReply;
     fallbackRef.current = fallbackReply;
-  }, [onReply, fallbackReply]);
+    systemPromptRef.current = systemPrompt;
+  }, [onReply, fallbackReply, systemPrompt]);
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   const info = getProvider(provider);
+  /** Groq (free tier) rides the OpenAI-compatible path with its own endpoint */
+  const isGroq = provider === 'groq';
   let compatibleUrl = '';
-  if (info.auth === 'endpoint' && openaiCompatible.endpoint.trim()) {
+  const compatibleSource = isGroq ? GROQ_ENDPOINT : openaiCompatible.endpoint;
+  if ((info.auth === 'endpoint' || isGroq) && compatibleSource.trim()) {
     try {
-      compatibleUrl = resolveOpenAICompatibleEndpoint(
-        openaiCompatible.endpoint,
-      ).chatCompletionsUrl;
+      compatibleUrl =
+        resolveOpenAICompatibleEndpoint(compatibleSource).chatCompletionsUrl;
     } catch {
       compatibleUrl = '';
     }
   }
-  const compatibleModel = openaiCompatible.model.trim();
-  const canChat =
-    info.browser &&
-    (info.auth === 'none'
-      ? nanoReady
-      : info.auth === 'endpoint'
-        ? compatibleUrl.length > 0
-        : apiKey.trim().length > 0);
+  const compatibleModel = isGroq ? GROQ_MODEL : openaiCompatible.model.trim();
+  const canChat = (() => {
+    if (!info.browser) return false;
+    if (isGroq) return apiKey.trim().length > 0 && compatibleUrl.length > 0;
+    if (info.auth === 'none') return nanoReady;
+    if (info.auth === 'endpoint') return compatibleUrl.length > 0;
+    return apiKey.trim().length > 0;
+  })();
 
   useEffect(() => {
     if (!canChat) {
@@ -115,7 +130,7 @@ export function useChatCore({
     const strings = getStrings(lang);
     const core = new AITuberOnAirCore({
       apiKey,
-      chatProvider: provider,
+      chatProvider: isGroq ? 'openai-compatible' : provider,
       ...(provider === 'gemini-nano'
         ? {
             model: 'gemini-nano',
@@ -134,7 +149,7 @@ export function useChatCore({
             },
           }
         : {}),
-      ...(info.auth === 'endpoint'
+      ...(info.auth === 'endpoint' || isGroq
         ? {
             model: compatibleModel || 'local-model',
             providerOptions: { endpoint: compatibleUrl },
@@ -195,6 +210,7 @@ export function useChatCore({
   }, [
     apiKey,
     canChat,
+    isGroq,
     lang,
     nanoLanguages,
     provider,
@@ -209,16 +225,42 @@ export function useChatCore({
     if (!text) return;
     setMessages((prev) => [...prev, { id: nextId(), role: 'user', text }]);
     const core = coreRef.current;
-    if (!core) {
+    if (core) {
+      await core.processChat(text);
+      return;
+    }
+    // No configured model: the free no-key AI answers, the canned reply last.
+    setIsProcessing(true);
+    setPartial('');
+    setError('');
+    try {
+      const history: FreeAiTurn[] = messagesRef.current.map((message) => ({
+        role: message.role,
+        text: message.text,
+      }));
+      const raw = await freeAiChat(systemPromptRef.current, history, text);
+      const tagged = raw.match(
+        /^\s*\[(happy|sad|angry|surprised|relaxed|neutral)\]\s*/i,
+      );
+      const emotion = tagged?.[1]?.toLowerCase();
+      const body = tagged ? raw.slice(tagged[0].length) : raw;
+      setMessages((prev) => [
+        ...prev,
+        { id: nextId(), role: 'assistant', text: body },
+      ]);
+      onReplyRef.current({ text: body, emotion });
+    } catch (err) {
+      console.error('Free AI error:', err);
       const reply = fallbackRef.current;
       setMessages((prev) => [
         ...prev,
         { id: nextId(), role: 'assistant', text: reply.text },
       ]);
       onReplyRef.current(reply);
-      return;
+    } finally {
+      setIsProcessing(false);
+      setPartial('');
     }
-    await core.processChat(text);
   }, []);
 
   const addAssistantMessage = useCallback((text: string) => {
