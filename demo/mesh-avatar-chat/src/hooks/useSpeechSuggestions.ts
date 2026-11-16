@@ -6,8 +6,14 @@ import {
   resolveOpenAICompatibleEndpoint,
 } from '@aituber-onair/core';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { freeAiComplete } from '../lib/freeAi';
 import { type UiLanguage, getStrings } from '../lib/i18n';
-import { type Provider, getProvider } from '../lib/providers';
+import {
+  GROQ_ENDPOINT,
+  GROQ_MODEL,
+  type Provider,
+  getProvider,
+} from '../lib/providers';
 import {
   NANO_FALLBACK_LANGUAGES,
   type NanoLanguages,
@@ -195,13 +201,32 @@ export function useSpeechSuggestions({
               trimmed,
             );
           } else if (info.auth === 'apiKey' && opts.apiKey.trim()) {
-            modelVariants = await runOneShot(
-              opts.provider,
-              { apiKey: opts.apiKey.trim() },
-              system,
-              trimmed,
-            );
+            if (opts.provider === 'groq') {
+              const { chatCompletionsUrl } =
+                resolveOpenAICompatibleEndpoint(GROQ_ENDPOINT);
+              modelVariants = await runOneShot(
+                'openai-compatible',
+                {
+                  apiKey: opts.apiKey.trim(),
+                  model: GROQ_MODEL,
+                  endpoint: chatCompletionsUrl,
+                },
+                system,
+                trimmed,
+              );
+            } else {
+              modelVariants = await runOneShot(
+                opts.provider,
+                { apiKey: opts.apiKey.trim() },
+                system,
+                trimmed,
+              );
+            }
           }
+        }
+        if (modelVariants.length === 0) {
+          // No configured model: the free no-key AI still rewrites the line.
+          modelVariants = parseVariants(await freeAiComplete(system, trimmed));
         }
       } catch {
         // The heuristic baseline stays visible; nothing else to do.

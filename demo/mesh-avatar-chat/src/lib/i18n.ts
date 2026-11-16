@@ -186,7 +186,7 @@ const ja = {
     ].join('\n'),
     greetingReady: 'こんにちは、ミコだよ！なんでも話しかけてね。',
     greetingNoModel:
-      'こんにちは、ミコだよ！この環境では Chrome の Gemini Nano が使えないみたい。右上の設定から API キーを入れると会話できるよ。',
+      'こんにちは、ミコだよ！この環境では Gemini Nano が使えないけど、無料の AI でそのまま会話できるよ。もっと良い品質にしたければ、右上の設定から無料の API キー（Groq や Gemini）を入れてね。',
     fallback:
       'ごめんね、まだ会話に使う AI がつながっていないの。右上の設定から Gemini Nano を準備するか、API キーを入れてね。',
     suggestSystem: [
@@ -216,6 +216,7 @@ const ja = {
   },
   providers: {
     'gemini-nano': 'Gemini Nano（Chrome 内蔵・キー不要）',
+    groq: 'Groq（無料 API キー）',
     'openai-compatible': 'OpenAI 互換サーバー（ローカル LLM など）',
   } as Partial<Record<Provider, string>>,
 };
@@ -392,7 +393,7 @@ const vi: Strings = {
     ].join('\n'),
     greetingReady: 'Xin chào, mình là Miko đây! Cứ nói chuyện với mình nhé.',
     greetingNoModel:
-      'Xin chào, mình là Miko đây! Có vẻ môi trường này chưa dùng được Gemini Nano của Chrome. Mở cài đặt ở góc trên bên phải và nhập API key là trò chuyện được ngay nhé.',
+      'Xin chào, mình là Miko đây! Môi trường này chưa có Gemini Nano nhưng mình vẫn trò chuyện được bằng AI miễn phí nhé. Muốn chất lượng tốt hơn nữa thì mở cài đặt ở góc trên bên phải và nhập key API miễn phí (Groq hoặc Gemini) giúp mình nhé.',
     fallback:
       'Xin lỗi nhé, AI dùng để trò chuyện chưa kết nối được. Mở cài đặt ở góc trên bên phải để chuẩn bị Gemini Nano hoặc nhập API key giúp mình nhé.',
     suggestSystem: [
@@ -428,6 +429,7 @@ const vi: Strings = {
   },
   providers: {
     'gemini-nano': 'Gemini Nano (tích hợp Chrome · không cần khóa)',
+    groq: 'Groq (key API miễn phí)',
     'openai-compatible': 'Máy chủ tương thích OpenAI (ví dụ: LLM cục bộ)',
   } as Partial<Record<Provider, string>>,
 };
@@ -604,7 +606,7 @@ const en: Strings = {
     ].join('\n'),
     greetingReady: "Hi, I'm Miko! Talk to me about anything.",
     greetingNoModel:
-      "Hi, I'm Miko! Looks like Chrome's Gemini Nano is not available here. Open the settings in the top right and add an API key to start chatting.",
+      "Hi, I'm Miko! Gemini Nano is not available here, but the free AI can chat right away. For even better quality, open the settings in the top right and add a free API key (Groq or Gemini).",
     fallback:
       'Sorry, the AI I chat with is not connected yet. Open the settings in the top right to prepare Gemini Nano or add an API key.',
     suggestSystem: [
@@ -634,6 +636,7 @@ const en: Strings = {
   },
   providers: {
     'gemini-nano': 'Gemini Nano (built into Chrome · no key needed)',
+    groq: 'Groq (free API key)',
     'openai-compatible': 'OpenAI-compatible server (e.g. a local LLM)',
   } as Partial<Record<Provider, string>>,
 };
