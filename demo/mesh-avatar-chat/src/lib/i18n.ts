@@ -50,6 +50,8 @@ const ja = {
     micErrorNoSpeech:
       '音声を認識できませんでした。マイクを押して、もう少し大きな声で話してください。',
     micError: '音声入力でエラーが発生しました。もう一度お試しください。',
+    micModelLoading: (progress: number | null) =>
+      `音声認識モデルを準備中…${progress === null ? '' : ` ${progress}%`}`,
     send: '送信',
   },
   voice: {
@@ -89,6 +91,16 @@ const ja = {
     modelPlaceholder: 'モデル名（例: gemma3）',
     endpointHint:
       'OpenAI 互換の Chat Completions API を持つサーバーに、このブラウザから直接つなぎ、メッセージをそのサーバーへ送ります。サーバー側で CORS の許可が必要です。',
+    sttLegend: '音声入力（マイク）',
+    sttWebSpeech: 'ブラウザ標準（Web Speech API・音声はクラウドへ送信）',
+    sttLocalWhisper:
+      'ローカル Whisper（端末の中で認識・完全無料・オフラインでも使える）',
+    whisperModel: 'モデルの大きさ',
+    whisperTiny: '軽快（tiny・最初のダウンロードが小）',
+    whisperBase: 'バランス（base）',
+    whisperSmall: '高精度（small・ダウンロードが大）',
+    sttWhisperHint:
+      '最初の 1 回だけモデルをダウンロードし、それ以降の音声はこのブラウザの中だけで処理されます（外部に送信されません）。',
     voiceLegend: '声',
     webSpeech: 'ブラウザ標準（Web Speech API）',
     autoVoice: '自動で選ぶ',
@@ -254,6 +266,8 @@ const vi: Strings = {
       'Chưa cho phép dùng micro. Hãy cho phép micro cho trang này trong cài đặt trình duyệt rồi thử lại.',
     micErrorNoSpeech: 'Không nghe thấy gì. Nhấn micro và nói to hơn nhé.',
     micError: 'Nhập bằng giọng nói gặp lỗi. Thử lại nhé.',
+    micModelLoading: (progress: number | null) =>
+      `Đang chuẩn bị model nhận dạng giọng…${progress === null ? '' : ` ${progress}%`}`,
     send: 'Gửi',
   },
   voice: {
@@ -295,6 +309,17 @@ const vi: Strings = {
     modelPlaceholder: 'Tên mô hình (ví dụ: gemma3)',
     endpointHint:
       'Kết nối trực tiếp từ trình duyệt này tới máy chủ có API Chat Completions tương thích OpenAI và gửi tin nhắn đến đó. Máy chủ cần cho phép CORS.',
+    sttLegend: 'Nhập liệu bằng giọng nói (mic)',
+    sttWebSpeech:
+      'Mặc định của trình duyệt (Web Speech API · âm thanh gửi lên đám mây)',
+    sttLocalWhisper:
+      'Whisper cục bộ (nhận dạng ngay trên máy · miễn phí · dùng được cả ngoại tuyến)',
+    whisperModel: 'Cỡ model',
+    whisperTiny: 'Nhanh (tiny · tải lần đầu nhỏ nhất)',
+    whisperBase: 'Cân bằng (base)',
+    whisperSmall: 'Chính xác (small · tải nặng hơn)',
+    sttWhisperHint:
+      'Chỉ lần đầu tải model; sau đó mọi âm thanh chỉ xử lý trong trình duyệt này (không gửi ra ngoài).',
     voiceLegend: 'Giọng nói',
     webSpeech: 'Mặc định của trình duyệt (Web Speech API)',
     autoVoice: 'Tự chọn',
@@ -465,6 +490,8 @@ const en: Strings = {
       'Microphone permission denied. Allow microphone access for this site in your browser settings, then try again.',
     micErrorNoSpeech: 'Nothing heard. Tap the mic and speak up.',
     micError: 'Voice input hit an error. Please try again.',
+    micModelLoading: (progress: number | null) =>
+      `Preparing the speech model…${progress === null ? '' : ` ${progress}%`}`,
     send: 'Send',
   },
   voice: {
@@ -507,6 +534,15 @@ const en: Strings = {
     modelPlaceholder: 'Model name (e.g. gemma3)',
     endpointHint:
       'Connects directly from this browser to a server with an OpenAI-compatible Chat Completions API and sends messages there. The server must allow CORS.',
+    sttLegend: 'Voice input (microphone)',
+    sttWebSpeech: 'Browser default (Web Speech API · audio sent to the cloud)',
+    sttLocalWhisper: 'Local Whisper (on-device · free · works offline)',
+    whisperModel: 'Model size',
+    whisperTiny: 'Fast (tiny · smallest first download)',
+    whisperBase: 'Balanced (base)',
+    whisperSmall: 'Accurate (small · larger download)',
+    sttWhisperHint:
+      'The model downloads once; after that the audio is processed only inside this browser (it never leaves the device).',
     voiceLegend: 'Voice',
     webSpeech: 'Browser default (Web Speech API)',
     autoVoice: 'Pick automatically',

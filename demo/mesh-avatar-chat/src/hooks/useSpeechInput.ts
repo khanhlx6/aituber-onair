@@ -5,13 +5,41 @@ import {
   TranscriptionSessionError,
   type RealtimeTranscriptionSession,
   type TranscriptionErrorCode,
+  type TranscriptionProgress,
 } from '@aituber-onair/transcription';
+import type { SttEngine, WhisperModelSize } from './useSettings';
 import type { UiLanguage } from '../lib/i18n';
 import { SPEECH_LANG } from '../lib/webSpeechVoice';
+
+/**
+ * Stable URL of the bundled local-Whisper worker (copied next to index.html by
+ * the demo build), so on-device speech recognition needs no server.
+ */
+const LOCAL_WHISPER_WORKER_URL = new URL(
+  'local-whisper.worker.js',
+  document.baseURI,
+).toString();
+
+/** Pick the preferred speech engine, falling back to the other when unsupported. */
+function pickEngine(preferred: SttEngine): 'webSpeech' | 'localWhisper' | null {
+  const order: Array<'webSpeech' | 'localWhisper'> =
+    preferred === 'localWhisper'
+      ? ['localWhisper', 'webSpeech']
+      : ['webSpeech', 'localWhisper'];
+  for (const engine of order) {
+    const provider = engine === 'webSpeech' ? 'web-speech' : 'local-whisper';
+    if (isTranscriptionProviderSupported(provider)) return engine;
+  }
+  return null;
+}
 
 export interface UseSpeechInputOptions {
   /** UI language; the recognizer follows it (vi-VN / en-US / ja-JP). */
   lang: UiLanguage;
+  /** Preferred speech engine; the other one is used when it is unsupported. */
+  engine: SttEngine;
+  /** On-device Whisper model size (local engine only). */
+  whisperModel: WhisperModelSize;
   /**
    * Called with each finished utterance. The mic stays open afterwards, so
    * the user can keep talking; only `stop`/`toggle` turn it off.
@@ -26,6 +54,8 @@ export interface UseSpeechInput {
   listening: boolean;
   /** Live (interim) transcript of the sentence being spoken right now. */
   interim: string;
+  /** Model download/initialization progress (local Whisper first use). */
+  loadProgress: TranscriptionProgress | null;
   error: TranscriptionErrorCode | null;
   /** Turn the mic on/off. */
   toggle: () => void;
@@ -39,15 +69,16 @@ const MAX_ERROR_STREAK = 3;
 
 export function useSpeechInput({
   lang,
+  engine,
+  whisperModel,
   onFinal,
   stopSpeaking,
 }: UseSpeechInputOptions): UseSpeechInput {
-  const supported = useMemo(
-    () => isTranscriptionProviderSupported('web-speech'),
-    [],
-  );
+  const supported = useMemo(() => pickEngine(engine) !== null, [engine]);
   const [listening, setListening] = useState(false);
   const [interim, setInterim] = useState('');
+  const [loadProgress, setLoadProgress] =
+    useState<TranscriptionProgress | null>(null);
   const [error, setError] = useState<TranscriptionErrorCode | null>(null);
 
   const sessionRef = useRef<RealtimeTranscriptionSession | null>(null);
@@ -57,11 +88,15 @@ export function useSpeechInput({
   const onFinalRef = useRef(onFinal);
   const stopSpeakingRef = useRef(stopSpeaking);
   const langRef = useRef(lang);
+  const engineRef = useRef(engine);
+  const whisperModelRef = useRef(whisperModel);
   useEffect(() => {
     onFinalRef.current = onFinal;
     stopSpeakingRef.current = stopSpeaking;
     langRef.current = lang;
-  }, [onFinal, stopSpeaking, lang]);
+    engineRef.current = engine;
+    whisperModelRef.current = whisperModel;
+  }, [onFinal, stopSpeaking, lang, engine, whisperModel]);
 
   /** Set after mount so `revive` can restart without a circular reference. */
   const startSessionRef = useRef<() => void>(() => {});
@@ -69,19 +104,31 @@ export function useSpeechInput({
   /** Create and wire one recognizer run; later runs replace it. */
   const startSession = useCallback(() => {
     if (!wantListeningRef.current) return;
-    const session = createRealtimeTranscriptionSession({
-      provider: 'web-speech',
-      language: SPEECH_LANG[langRef.current],
-      // Continuous keeps one run alive across sentences on desktop; when a
-      // browser ends the run early, `revive` starts a fresh one right away.
-      continuous: true,
-    });
+    const active = pickEngine(engineRef.current) ?? 'webSpeech';
+    const session = createRealtimeTranscriptionSession(
+      active === 'localWhisper'
+        ? {
+            // On-device Whisper: the audio never leaves the browser.
+            provider: 'local-whisper',
+            model: whisperModelRef.current,
+            language: SPEECH_LANG[langRef.current],
+            workerUrl: LOCAL_WHISPER_WORKER_URL,
+          }
+        : {
+            provider: 'web-speech',
+            language: SPEECH_LANG[langRef.current],
+            // Continuous keeps one run alive across sentences on desktop; when
+            // a browser ends the run early, `revive` starts a fresh one.
+            continuous: true,
+          },
+    );
 
     let reachedListening = false;
 
     const revive = () => {
       if (sessionRef.current !== session || !wantListeningRef.current) return;
       sessionRef.current = null;
+      setLoadProgress(null);
       void session.dispose().catch(() => undefined);
       startSessionRef.current();
     };
@@ -92,8 +139,18 @@ export function useSpeechInput({
       void session.dispose().catch(() => undefined);
       setListening(false);
       setInterim('');
+      setLoadProgress(null);
       setError(code);
     };
+
+    session.onProgress((progress) => {
+      if (sessionRef.current !== session || !wantListeningRef.current) return;
+      if (progress.phase === 'ready') {
+        setLoadProgress(null);
+        return;
+      }
+      setLoadProgress(progress);
+    });
 
     session.onTranscript(({ text, isFinal }) => {
       if (sessionRef.current !== session || !wantListeningRef.current) return;
@@ -154,6 +211,7 @@ export function useSpeechInput({
     stopSpeakingRef.current();
     setError(null);
     setInterim('');
+    setLoadProgress(null);
     errorStreakRef.current = 0;
     wantListeningRef.current = true;
     setListening(true);
@@ -167,6 +225,7 @@ export function useSpeechInput({
     sessionRef.current = null;
     setListening(false);
     setInterim('');
+    setLoadProgress(null);
     if (!session) return;
     void (async () => {
       try {
@@ -199,6 +258,7 @@ export function useSpeechInput({
     supported,
     listening,
     interim,
+    loadProgress,
     error,
     toggle,
     stop,

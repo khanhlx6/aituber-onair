@@ -9,6 +9,10 @@ import {
 
 export type VoiceKind = 'webSpeech' | 'piperPlus';
 
+/** Speech-to-text engine for the mic: cloud Web Speech or on-device Whisper. */
+export type SttEngine = 'webSpeech' | 'localWhisper';
+export type WhisperModelSize = 'tiny' | 'base' | 'small';
+
 /**
  * Settings persisted in this browser only. API keys are included so a visitor
  * does not have to re-enter them; they never leave the browser except in the
@@ -20,7 +24,7 @@ export type VoiceKind = 'webSpeech' | 'piperPlus';
  * stored under this key is ignored.
  */
 export interface DemoSettings {
-  version: 3;
+  version: 4;
   ui: {
     /** Interface / conversation language */
     language: UiLanguage;
@@ -43,6 +47,12 @@ export interface DemoSettings {
     /** Speaking speed of the Miko voice (piper-plus length scale inverse) */
     piperSpeed: number;
   };
+  stt: {
+    /** Speech-to-text engine used when composing with the mic */
+    engine: SttEngine;
+    /** On-device Whisper model size (downloaded once on first use) */
+    whisperModel: WhisperModelSize;
+  };
 }
 
 const STORAGE_KEY = 'aituber-onair-mesh-avatar-chat';
@@ -52,7 +62,7 @@ export const PIPER_SPEED_RANGE = { min: 0.7, max: 1.2, step: 0.05 };
 
 function makeDefaults(): DemoSettings {
   return {
-    version: 3,
+    version: 4,
     ui: { language: DEFAULT_UI_LANGUAGE },
     llm: {
       provider: 'gemini-nano',
@@ -65,6 +75,10 @@ function makeDefaults(): DemoSettings {
       webSpeechVoice: '',
       piperSpeed: DEFAULT_PIPER_SPEED,
     },
+    stt: {
+      engine: 'webSpeech',
+      whisperModel: 'tiny',
+    },
   };
 }
 
@@ -76,11 +90,16 @@ function migrate(raw: unknown): DemoSettings {
   const stored = raw as Partial<Omit<DemoSettings, 'version'>> & {
     version?: number;
   };
-  if (stored.version !== 1 && stored.version !== 2 && stored.version !== 3) {
+  if (
+    stored.version !== 1 &&
+    stored.version !== 2 &&
+    stored.version !== 3 &&
+    stored.version !== 4
+  ) {
     return makeDefaults();
   }
   return {
-    version: 3,
+    version: 4,
     ui: { ...makeDefaults().ui, ...stored.ui },
     llm: {
       ...DEFAULT_SETTINGS.llm,
@@ -92,6 +111,7 @@ function migrate(raw: unknown): DemoSettings {
       },
     },
     tts: { ...DEFAULT_SETTINGS.tts, ...stored.tts },
+    stt: { ...DEFAULT_SETTINGS.stt, ...stored.stt },
   };
 }
 
@@ -148,6 +168,10 @@ export function useSettings() {
     setSettings((prev) => ({ ...prev, tts: { ...prev.tts, ...patch } }));
   }, []);
 
+  const updateStt = useCallback((patch: Partial<DemoSettings['stt']>) => {
+    setSettings((prev) => ({ ...prev, stt: { ...prev.stt, ...patch } }));
+  }, []);
+
   const setApiKey = useCallback((provider: KeyedProvider, key: string) => {
     setSettings((prev) => ({
       ...prev,
@@ -181,6 +205,7 @@ export function useSettings() {
     updateUi,
     updateLlm,
     updateTts,
+    updateStt,
     setApiKey,
     setOpenaiCompatible,
     clearStored,

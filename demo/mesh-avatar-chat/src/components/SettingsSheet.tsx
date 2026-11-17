@@ -3,7 +3,9 @@ import type { GeminiNanoStatus } from '../hooks/useGeminiNano';
 import {
   type DemoSettings,
   PIPER_SPEED_RANGE,
+  type SttEngine,
   type VoiceKind,
+  type WhisperModelSize,
 } from '../hooks/useSettings';
 import type { PiperStatus } from '../hooks/useTts';
 import {
@@ -34,6 +36,7 @@ interface SettingsSheetProps {
   onUpdateUi: (patch: Partial<DemoSettings['ui']>) => void;
   onUpdateLlm: (patch: Partial<DemoSettings['llm']>) => void;
   onUpdateTts: (patch: Partial<DemoSettings['tts']>) => void;
+  onUpdateStt: (patch: Partial<DemoSettings['stt']>) => void;
   onSetApiKey: (provider: KeyedProvider, key: string) => void;
   onSetOpenaiCompatible: (
     patch: Partial<DemoSettings['llm']['openaiCompatible']>,
@@ -58,6 +61,7 @@ export function SettingsSheet({
   onUpdateUi,
   onUpdateLlm,
   onUpdateTts,
+  onUpdateStt,
   onSetApiKey,
   onSetOpenaiCompatible,
   onPreparePiper,
@@ -253,6 +257,47 @@ export function SettingsSheet({
           )}
           {mikoVoice && piperStatus === 'error' && (
             <p className="hint">{strings.settings.prepareError}</p>
+          )}
+        </fieldset>
+
+        <fieldset className="group">
+          <legend>{strings.settings.sttLegend}</legend>
+          <label className="radio">
+            <input
+              type="radio"
+              name="stt"
+              checked={settings.stt.engine === 'webSpeech'}
+              onChange={() => onUpdateStt({ engine: 'webSpeech' as SttEngine })}
+            />
+            {strings.settings.sttWebSpeech}
+          </label>
+          <label className="radio">
+            <input
+              type="radio"
+              name="stt"
+              checked={settings.stt.engine === 'localWhisper'}
+              onChange={() =>
+                onUpdateStt({ engine: 'localWhisper' as SttEngine })
+              }
+            />
+            {strings.settings.sttLocalWhisper}
+          </label>
+          {settings.stt.engine === 'localWhisper' && (
+            <>
+              <select
+                value={settings.stt.whisperModel}
+                onChange={(event) =>
+                  onUpdateStt({
+                    whisperModel: event.target.value as WhisperModelSize,
+                  })
+                }
+              >
+                <option value="tiny">{strings.settings.whisperTiny}</option>
+                <option value="base">{strings.settings.whisperBase}</option>
+                <option value="small">{strings.settings.whisperSmall}</option>
+              </select>
+              <p className="hint">{strings.settings.sttWhisperHint}</p>
+            </>
           )}
         </fieldset>
 
