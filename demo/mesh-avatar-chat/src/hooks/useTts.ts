@@ -41,8 +41,13 @@ export interface SpeakOptions {
 
 export interface UseTtsOptions {
   /** Plays a WAV buffer and resolves when playback ends (drives lip sync) */
-  play: (buffer: ArrayBuffer) => Promise<void>;
+  play: (buffer: ArrayBuffer, volume?: number) => Promise<void>;
   stopPlayback: () => void;
+  /** Live output volume of the buffer playback (speaker panel slider) */
+  setPlaybackVolume: (volume: number) => void;
+  /** Pause/resume the buffer playback mid-buffer (AudioContext) */
+  pausePlayback: () => void;
+  resumePlayback: () => void;
   /** Fake mouth movement while Web Speech plays audio we cannot analyse */
   envelope: { start: () => void; stop: () => void };
 }
@@ -141,7 +146,14 @@ function splitSentences(text: string): string[] {
  * Two voices behind one `speak()`: the Web Speech API (instant, no download)
  * and piper-plus with the Miko voice model (prepared in the background).
  */
-export function useTts({ play, stopPlayback, envelope }: UseTtsOptions) {
+export function useTts({
+  play,
+  stopPlayback,
+  setPlaybackVolume,
+  pausePlayback,
+  resumePlayback,
+  envelope,
+}: UseTtsOptions) {
   const webRef = useRef<WebSpeechEngine | null>(null);
   const piperRef = useRef<PiperPlusEngine | null>(null);
   const [piperStatus, setPiperStatus] = useState<PiperStatus>('idle');
@@ -152,12 +164,37 @@ export function useTts({ play, stopPlayback, envelope }: UseTtsOptions) {
   const envelopeRef = useRef(envelope);
   const playRef = useRef(play);
   const stopPlaybackRef = useRef(stopPlayback);
+  const setPlaybackVolumeRef = useRef(setPlaybackVolume);
+  const pausePlaybackRef = useRef(pausePlayback);
+  const resumePlaybackRef = useRef(resumePlayback);
+  /** Speaker-panel controls: volume (0-1), speed multiplier, pause state. */
+  const [speechVolume, setSpeechVolumeState] = useState(1);
+  const [speechRate, setSpeechRateState] = useState(1);
+  const [speechPaused, setSpeechPaused] = useState(false);
+  const [hasReplay, setHasReplay] = useState(false);
+  const volumeRef = useRef(1);
+  const rateRef = useRef(1);
+  const pausedRef = useRef(false);
+  /** Last spoken text/options so the speaker panel can replay them. */
+  const lastRef = useRef<{ text: string; options: SpeakOptions } | null>(null);
+  /** Which engine is playing right now, so pause targets the right one. */
+  const activeEngineRef = useRef<'web' | 'piper' | null>(null);
 
   useEffect(() => {
     envelopeRef.current = envelope;
     playRef.current = play;
     stopPlaybackRef.current = stopPlayback;
-  }, [envelope, play, stopPlayback]);
+    setPlaybackVolumeRef.current = setPlaybackVolume;
+    pausePlaybackRef.current = pausePlayback;
+    resumePlaybackRef.current = resumePlayback;
+  }, [
+    envelope,
+    play,
+    stopPlayback,
+    setPlaybackVolume,
+    pausePlayback,
+    resumePlayback,
+  ]);
 
   const getWeb = useCallback(() => {
     if (!webRef.current) webRef.current = new WebSpeechEngine();
@@ -216,6 +253,15 @@ export function useTts({ play, stopPlayback, envelope }: UseTtsOptions) {
 
   const stop = useCallback(() => {
     speakSeqRef.current += 1;
+    pausedRef.current = false;
+    setSpeechPaused(false);
+    activeEngineRef.current = null;
+    // A paused synthesizer refuses to start the next utterance; unpause first.
+    try {
+      window.speechSynthesis?.resume();
+    } catch {
+      // ignore
+    }
     try {
       webRef.current?.stopSpeaking();
     } catch {
@@ -229,6 +275,9 @@ export function useTts({ play, stopPlayback, envelope }: UseTtsOptions) {
     async (text: string, options: SpeakOptions): Promise<void> => {
       const message = toSpokenText(text);
       if (!message) return;
+      // Remember it so the speaker panel can replay ("Nghe lại").
+      lastRef.current = { text, options };
+      setHasReplay(true);
       stop();
       const seq = speakSeqRef.current;
       const piper = piperRef.current;
@@ -236,7 +285,15 @@ export function useTts({ play, stopPlayback, envelope }: UseTtsOptions) {
       // The Miko voice model is Japanese-only; other languages use the
       // browser voice below even if piper is loaded.
       if (options.voice === 'piperPlus' && piper && options.lang === 'ja') {
-        piper.setSpeed(options.piperSpeed);
+        activeEngineRef.current = 'piper';
+        // The panel's speed stacks on the settings speed; piper stays in the
+        // range the model sounds good at.
+        piper.setSpeed(
+          Math.min(
+            1.2,
+            Math.max(0.7, (options.piperSpeed ?? 1) * rateRef.current),
+          ),
+        );
         const chunks = splitSentences(message);
         let next = piper.fetchAudio({ style: 'talk', message: chunks[0] }, '');
         for (let i = 0; i < chunks.length; i++) {
@@ -248,13 +305,20 @@ export function useTts({ play, stopPlayback, envelope }: UseTtsOptions) {
               '',
             );
           }
-          await playRef.current(buffer);
+          // Honor a pause between chunks too, not just mid-buffer.
+          while (pausedRef.current && seq === speakSeqRef.current) {
+            await new Promise((resolve) => window.setTimeout(resolve, 120));
+          }
+          if (seq !== speakSeqRef.current) return;
+          await playRef.current(buffer, volumeRef.current);
           if (seq !== speakSeqRef.current) return;
         }
+        if (seq === speakSeqRef.current) activeEngineRef.current = null;
         return;
       }
 
       if (!webSpeechAvailable) return;
+      activeEngineRef.current = 'web';
       const voice = pickVoiceFor(options.lang, voices, options.webSpeechVoice);
       envelopeRef.current.start();
       // Browsers without a usable voice may never fire `end`; stop the mouth
@@ -278,8 +342,9 @@ export function useTts({ play, stopPlayback, envelope }: UseTtsOptions) {
             voice?.name ?? '',
             {
               lang: SPEECH_LANG[options.lang],
-              rate: WEB_SPEECH_RATE,
+              rate: WEB_SPEECH_RATE * rateRef.current,
               pitch: WEB_SPEECH_PITCH,
+              volume: volumeRef.current,
             },
           ),
           timeout,
@@ -288,11 +353,66 @@ export function useTts({ play, stopPlayback, envelope }: UseTtsOptions) {
         console.warn('Web Speech failed:', error);
       } finally {
         window.clearTimeout(timer);
-        if (seq === speakSeqRef.current) envelopeRef.current.stop();
+        if (seq === speakSeqRef.current) {
+          envelopeRef.current.stop();
+          activeEngineRef.current = null;
+        }
       }
     },
     [getWeb, stop, voices, webSpeechAvailable],
   );
+
+  /** Speaker-panel volume (0-1); applies live to buffers, next utterance for Web Speech. */
+  const setSpeechVolume = useCallback((volume: number) => {
+    const value = Math.min(1, Math.max(0, volume));
+    volumeRef.current = value;
+    setSpeechVolumeState(value);
+    setPlaybackVolumeRef.current(value);
+  }, []);
+
+  /** Speaker-panel speed (0.5-2); applies from the next utterance/chunk. */
+  const setSpeechRate = useCallback((rate: number) => {
+    const value = Math.min(2, Math.max(0.5, rate));
+    rateRef.current = value;
+    setSpeechRateState(value);
+  }, []);
+
+  const pause = useCallback(() => {
+    if (pausedRef.current) return;
+    pausedRef.current = true;
+    setSpeechPaused(true);
+    if (activeEngineRef.current === 'web') {
+      try {
+        window.speechSynthesis?.pause();
+      } catch {
+        // ignore
+      }
+    } else if (activeEngineRef.current === 'piper') {
+      pausePlaybackRef.current();
+    }
+  }, []);
+
+  const resume = useCallback(() => {
+    if (!pausedRef.current) return;
+    pausedRef.current = false;
+    setSpeechPaused(false);
+    if (activeEngineRef.current === 'web') {
+      try {
+        window.speechSynthesis?.resume();
+      } catch {
+        // ignore
+      }
+    } else if (activeEngineRef.current === 'piper') {
+      resumePlaybackRef.current();
+    }
+  }, []);
+
+  /** Replays the last spoken message from the start ("Nghe lại"). */
+  const replay = useCallback(() => {
+    const last = lastRef.current;
+    if (!last) return;
+    void speak(last.text, last.options);
+  }, [speak]);
 
   /** Deletes the downloaded voice files from Cache Storage (the loaded voice keeps working). */
   const clearPiperCache = useCallback(async (): Promise<boolean> => {
@@ -314,6 +434,15 @@ export function useTts({ play, stopPlayback, envelope }: UseTtsOptions) {
   return {
     speak,
     stop,
+    replay,
+    pause,
+    resume,
+    speechPaused,
+    speechVolume,
+    setSpeechVolume,
+    speechRate,
+    setSpeechRate,
+    hasReplay,
     preparePiper,
     clearPiperCache,
     piperStatus,

@@ -17,6 +17,7 @@ export function useAudioMotion() {
   const ctxRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const sourceRef = useRef<AudioBufferSourceNode | null>(null);
+  const gainRef = useRef<GainNode | null>(null);
   const rafRef = useRef<number>(0);
   const smoothedRef = useRef(0);
   const peakRef = useRef(0);
@@ -44,6 +45,7 @@ export function useAudioMotion() {
       cancelAnimationFrame(rafRef.current);
       rafRef.current = 0;
     }
+    gainRef.current = null;
     smoothedRef.current = 0;
     peakRef.current = 0;
     setVoiceLevel(0);
@@ -51,7 +53,7 @@ export function useAudioMotion() {
   }, []);
 
   const play = useCallback(
-    async (arrayBuffer: ArrayBuffer): Promise<void> => {
+    async (arrayBuffer: ArrayBuffer, volume = 1): Promise<void> => {
       // Stop previous playback
       stopCurrent();
 
@@ -68,7 +70,7 @@ export function useAudioMotion() {
       source.buffer = audioBuffer;
 
       const gain = ctx.createGain();
-      gain.gain.value = 1.0;
+      gain.gain.value = volume;
 
       const analyser = ctx.createAnalyser();
       // ~21 ms window at 48 kHz: short enough to see each mora
@@ -79,6 +81,7 @@ export function useAudioMotion() {
       analyser.connect(ctx.destination);
 
       sourceRef.current = source;
+      gainRef.current = gain;
       analyserRef.current = analyser;
       setIsSpeaking(true);
 
@@ -143,10 +146,28 @@ export function useAudioMotion() {
     };
   }, [stopCurrent]);
 
+  /** Live output volume of the playing buffer (speaker panel slider). */
+  const setVolume = useCallback((volume: number) => {
+    if (gainRef.current) {
+      gainRef.current.gain.value = Math.min(1, Math.max(0, volume));
+    }
+  }, []);
+
+  /** Pause/resume playback mid-buffer (the AudioContext clock). */
+  const pause = useCallback(() => {
+    if (ctxRef.current?.state === 'running') void ctxRef.current.suspend();
+  }, []);
+  const resume = useCallback(() => {
+    if (ctxRef.current?.state === 'suspended') void ctxRef.current.resume();
+  }, []);
+
   return {
     voiceLevel,
     isSpeaking,
     play,
     stop: stopCurrent,
+    setVolume,
+    pause,
+    resume,
   };
 }

@@ -676,6 +676,126 @@ select {
   color: var(--muted);
 }
 
+.bubble-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  max-width: 88%;
+}
+
+.bubble-row .bubble {
+  max-width: 100%;
+}
+
+.speak-btn {
+  width: 30px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.speak-btn:hover {
+  border-color: var(--accent);
+}
+
+.voice-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 16px 10px;
+}
+
+.voice-panel-toggle {
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.voice-panel-toggle:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.voice-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.voice-speaking {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+}
+
+.voice-speaking span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.voice-btn {
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.voice-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.voice-btn-stop {
+  border-color: #ef4444;
+  background: #ef4444;
+  color: #fff;
+}
+
+.voice-btn-stop:hover {
+  border-color: #dc2626;
+  background: #dc2626;
+  color: #fff;
+}
+
+.voice-slider {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.voice-slider input[type="range"] {
+  width: 90px;
+  accent-color: var(--accent);
+}
+
+.voice-slider strong {
+  min-width: 40px;
+  color: var(--ink);
+  text-align: right;
+}
+
 .chat-error {
   padding: 8px 12px;
   border-radius: 8px;
