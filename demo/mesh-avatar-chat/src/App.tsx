@@ -34,6 +34,7 @@ export default function App() {
     updateUi,
     updateLlm,
     updateTts,
+    updateStt,
     setApiKey,
     setOpenaiCompatible,
     clearStored,
@@ -234,6 +235,8 @@ export default function App() {
 
   const speechInput = useSpeechInput({
     lang,
+    engine: settings.stt.engine,
+    whisperModel: settings.stt.whisperModel,
     onFinal: (text) => {
       appendToDraft(text);
       setSuggestFromSpeech(true);
@@ -248,6 +251,13 @@ export default function App() {
       : speechInput.error === 'no-speech'
         ? strings.chat.micErrorNoSpeech
         : strings.chat.micError
+    : '';
+  const micLoadingText = speechInput.loadProgress
+    ? strings.chat.micModelLoading(
+        speechInput.loadProgress.phase === 'download'
+          ? Math.round((speechInput.loadProgress.progress ?? 0) * 100)
+          : null,
+      )
     : '';
 
   const handleSend = useCallback(
@@ -364,6 +374,7 @@ export default function App() {
             micListening={speechInput.listening}
             micInterim={speechInput.interim}
             micErrorText={micErrorText}
+            micLoadingText={micLoadingText}
             onMicToggle={speechInput.toggle}
             onSend={handleSend}
           />
@@ -390,6 +401,7 @@ export default function App() {
           onUpdateUi={handleUpdateUi}
           onUpdateLlm={updateLlm}
           onUpdateTts={updateTts}
+          onUpdateStt={updateStt}
           onSetApiKey={setApiKey}
           onSetOpenaiCompatible={setOpenaiCompatible}
           onPreparePiper={() => void tts.preparePiper()}

@@ -35,6 +35,7 @@ interface ChatPanelProps {
   micListening: boolean;
   micInterim: string;
   micErrorText: string;
+  micLoadingText: string;
   onMicToggle: () => void;
   onSend: (text: string) => void;
 }
@@ -57,6 +58,7 @@ export function ChatPanel({
   micListening,
   micInterim,
   micErrorText,
+  micLoadingText,
   onMicToggle,
   onSend,
 }: ChatPanelProps) {
@@ -279,6 +281,11 @@ export function ChatPanel({
       {micErrorText && (
         <p className="mic-status" role="status">
           {micErrorText}
+        </p>
+      )}
+      {!micErrorText && micLoadingText && (
+        <p className="mic-status" role="status">
+          {micLoadingText}
         </p>
       )}
     </section>

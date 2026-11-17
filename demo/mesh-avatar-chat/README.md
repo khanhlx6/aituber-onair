@@ -37,12 +37,13 @@ published to GitHub Pages.
   Ngôn ngữ / Language. The Miko voice model speaks Japanese only; other
   languages use the browser voice (Web Speech API).
 - Voice input: the chat box has a microphone, so you can talk instead of type.
-  The browser's speech recognition (`@aituber-onair/transcription`, Web Speech
-  API) transcribes Vietnamese, English and Japanese live. Each finished
-  sentence lands in the message box and the mic keeps listening for the next
-  one; three correction candidates of the latest utterance appear above the
-  box (Gemini Nano when available) for one-tap fixes. Nothing is sent until
-  you press Send.
+  Speech recognition transcribes Vietnamese, English and Japanese live — the
+  browser's Web Speech API by default, or on-device Whisper ("Local Whisper"
+  in Settings): free, private, works offline, and its model downloads once.
+  Each finished sentence lands in the message box and the mic keeps listening
+  for the next one; three correction candidates of the latest utterance appear
+  above the box (from the free AI or Gemini Nano) for one-tap fixes. Nothing
+  is sent until you press Send.
 
 ## Run locally
 
