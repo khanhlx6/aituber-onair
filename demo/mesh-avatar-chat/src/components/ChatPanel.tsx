@@ -6,6 +6,7 @@ import {
   type SetStateAction,
   useEffect,
   useRef,
+  useState,
 } from 'react';
 import type { ChatMessage } from '../hooks/useChatCore';
 import { type UiLanguage, getStrings } from '../lib/i18n';
@@ -37,6 +38,18 @@ interface ChatPanelProps {
   micErrorText: string;
   micLoadingText: string;
   onMicToggle: () => void;
+  /** Speaker controls (replay, pause, volume, speed — like the source widget) */
+  speaking: boolean;
+  speechPaused: boolean;
+  hasSpeechReplay: boolean;
+  speechVolume: number;
+  speechRate: number;
+  onSpeakMessage: (text: string) => void;
+  onReplay: () => void;
+  onPauseResume: () => void;
+  onStopSpeaking: () => void;
+  onVolumeChange: (volume: number) => void;
+  onRateChange: (rate: number) => void;
   onSend: (text: string) => void;
 }
 
@@ -60,11 +73,24 @@ export function ChatPanel({
   micErrorText,
   micLoadingText,
   onMicToggle,
+  speaking,
+  speechPaused,
+  hasSpeechReplay,
+  speechVolume,
+  speechRate,
+  onSpeakMessage,
+  onReplay,
+  onPauseResume,
+  onStopSpeaking,
+  onVolumeChange,
+  onRateChange,
   onSend,
 }: ChatPanelProps) {
   const strings = getStrings(lang);
   const listRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
+  /** Speaker panel expanded state (the "Ẩn loa / Hiện loa" toggle) */
+  const [showPlaybackControls, setShowPlaybackControls] = useState(true);
 
   useEffect(() => {
     const list = listRef.current;
@@ -175,11 +201,26 @@ export function ChatPanel({
   return (
     <section className="chat" aria-label={strings.chat.label}>
       <div ref={listRef} className="chat-log" aria-live="polite">
-        {messages.map((message) => (
-          <div key={message.id} className={`bubble bubble-${message.role}`}>
-            {message.text}
-          </div>
-        ))}
+        {messages.map((message) =>
+          message.role === 'assistant' ? (
+            <div key={message.id} className="bubble-row">
+              <div className="bubble bubble-assistant">{message.text}</div>
+              <button
+                type="button"
+                className="speak-btn"
+                onClick={() => onSpeakMessage(message.text)}
+                title={strings.voice.replayThis}
+                aria-label={strings.voice.replayThis}
+              >
+                🔊
+              </button>
+            </div>
+          ) : (
+            <div key={message.id} className="bubble bubble-user">
+              {message.text}
+            </div>
+          ),
+        )}
         {isProcessing && (
           <div className="bubble bubble-assistant bubble-partial">
             {partial || strings.chat.thinking}
@@ -187,6 +228,80 @@ export function ChatPanel({
         )}
         {error && <div className="chat-error">{error}</div>}
       </div>
+      {(speaking || hasSpeechReplay) && (
+        <div className="voice-panel">
+          <button
+            type="button"
+            className="voice-panel-toggle"
+            onClick={() => setShowPlaybackControls((value) => !value)}
+            aria-expanded={showPlaybackControls}
+          >
+            🔊{' '}
+            {showPlaybackControls
+              ? strings.voice.panelHide
+              : strings.voice.panelShow}
+          </button>
+          {showPlaybackControls && (
+            <div className="voice-controls">
+              {speaking && (
+                <div className="voice-speaking">
+                  <strong>🔊 {strings.voice.speakingNow}</strong>
+                  <span>{strings.voice.speakingSub}</span>
+                </div>
+              )}
+              {speaking && (
+                <button
+                  type="button"
+                  className="voice-btn"
+                  onClick={onPauseResume}
+                >
+                  {speechPaused
+                    ? `▶️ ${strings.voice.resume}`
+                    : `⏸️ ${strings.voice.pause}`}
+                </button>
+              )}
+              <button type="button" className="voice-btn" onClick={onReplay}>
+                🔁 {strings.voice.replay}
+              </button>
+              {speaking && (
+                <button
+                  type="button"
+                  className="voice-btn voice-btn-stop"
+                  onClick={onStopSpeaking}
+                >
+                  ⏹️ {strings.voice.stop}
+                </button>
+              )}
+              <label className="voice-slider">
+                <span>{strings.voice.volumeLabel}</span>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                  value={speechVolume}
+                  onChange={(event) =>
+                    onVolumeChange(Number(event.target.value))
+                  }
+                />
+                <strong>{Math.round(speechVolume * 100)}%</strong>
+              </label>
+              <label className="voice-slider">
+                <span>{strings.voice.speedLabel}</span>
+                <input
+                  type="range"
+                  min="0.5"
+                  max="2"
+                  step="0.05"
+                  value={speechRate}
+                  onChange={(event) => onRateChange(Number(event.target.value))}
+                />
+                <strong>{speechRate.toFixed(2)}×</strong>
+              </label>
+            </div>
+          )}
+        </div>
+      )}
       {showSuggestions && (
         <div className="suggestions">
           {suggestions.map((text) => (

@@ -46,6 +46,9 @@ export default function App() {
   const tts = useTts({
     play: audioMotion.play,
     stopPlayback: audioMotion.stop,
+    setPlaybackVolume: audioMotion.setVolume,
+    pausePlayback: audioMotion.pause,
+    resumePlayback: audioMotion.resume,
     envelope,
   });
   const [started, setStarted] = useState(false);
@@ -83,6 +86,20 @@ export default function App() {
       const current = settingsRef.current.tts;
       if (!current.enabled) return;
       void tts.speak(reply.text, {
+        voice: current.engine,
+        lang,
+        webSpeechVoice: current.webSpeechVoice,
+        piperSpeed: current.piperSpeed,
+      });
+    },
+    [tts, lang],
+  );
+
+  /** Speaks any text on demand (per-message speaker button, replay). */
+  const speakText = useCallback(
+    (text: string) => {
+      const current = settingsRef.current.tts;
+      void tts.speak(text, {
         voice: current.engine,
         lang,
         webSpeechVoice: current.webSpeechVoice,
@@ -376,6 +393,20 @@ export default function App() {
             micErrorText={micErrorText}
             micLoadingText={micLoadingText}
             onMicToggle={speechInput.toggle}
+            speaking={isSpeaking}
+            speechPaused={tts.speechPaused}
+            hasSpeechReplay={tts.hasReplay}
+            speechVolume={tts.speechVolume}
+            speechRate={tts.speechRate}
+            onSpeakMessage={speakText}
+            onReplay={tts.replay}
+            onPauseResume={() => {
+              if (tts.speechPaused) tts.resume();
+              else tts.pause();
+            }}
+            onStopSpeaking={tts.stop}
+            onVolumeChange={tts.setSpeechVolume}
+            onRateChange={tts.setSpeechRate}
             onSend={handleSend}
           />
         </section>

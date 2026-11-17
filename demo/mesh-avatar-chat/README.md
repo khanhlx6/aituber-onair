@@ -29,6 +29,9 @@ published to GitHub Pages.
   takes over once it is ready. Phones and metered
   connections are not downloaded to automatically; a link starts the download
   instead.
+- Speaker controls: each reply has a 🔊 button to hear it again, and the
+  speaker panel ("Ẩn loa / Hiện loa") adds pause/resume, replay, stop and live
+  volume and speed sliders.
 - Avatar: `@aituber-onair/core` handles the conversation and emotion tags, and
   the `mesh-avatar` runtime animates the `.mavatar` file.
 - Language: the interface and Miko's conversation support Vietnamese
