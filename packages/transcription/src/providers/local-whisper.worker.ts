@@ -17,7 +17,9 @@ const LOCAL_WHISPER_MODEL_IDS: Record<LocalWhisperModelSize, string> = {
 };
 const LOCAL_WHISPER_MODEL_OPTIONS = {
   device: 'webgpu',
-  dtype: { encoder_model: 'fp32', decoder_model_merged: 'q4' },
+  // `q8` maps to the int8 file (`_quantized`): half the download of `q4`
+  // and the standard Whisper quantization. Keeps first use phone-friendly.
+  dtype: { encoder_model: 'fp32', decoder_model_merged: 'q8' },
 } as const;
 const WARM_UP_SAMPLE_COUNT = 16_000;
 
