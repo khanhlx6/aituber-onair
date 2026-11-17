@@ -24,6 +24,14 @@ export const NANO_FALLBACK_LANGUAGES = {
   outputs: ['ja'],
 };
 
+/**
+ * Languages Chrome's LanguageModel API accepts right now. It validates these
+ * strictly since the language pack feature: any other code (e.g. 'vi') makes
+ * session creation abort, so declarations are limited to this list and the
+ * prompt steers the reply language instead.
+ */
+export const NANO_SUPPORTED_LANGUAGES = ['de', 'en', 'es', 'fr', 'ja'];
+
 export interface NanoLanguages {
   inputs: string[];
   outputs: string[];
@@ -31,24 +39,24 @@ export interface NanoLanguages {
 
 /**
  * Resolve the `expectedInputs`/`expectedOutputs` languages for session
- * creation. Declaring the UI language (e.g. 'vi') lets the browser download
- * language support material and improves replies in that language; when the
- * browser cannot support it the declaration would fail session creation, so
- * fall back to the known-good set and let the prompt steer the language.
+ * creation. Only codes Chrome currently supports may be declared — a
+ * declaration outside that list aborts session creation — so the UI language
+ * is used when it is supported and dropped otherwise; the prompt steers the
+ * reply language either way.
  */
 export async function resolveNanoLanguages(
   code: string,
 ): Promise<NanoLanguages> {
+  const unique = (list: string[]) =>
+    list.filter((item, index, all) => all.indexOf(item) === index);
+  const supported = (list: string[]) =>
+    list.filter((item) => NANO_SUPPORTED_LANGUAGES.includes(item));
   const preferred: NanoLanguages = {
-    inputs: [code, 'ja', 'en'].filter(
-      (item, index, all) => all.indexOf(item) === index,
-    ),
-    outputs: [code, 'ja', 'en'].filter(
-      (item, index, all) => all.indexOf(item) === index,
-    ),
+    inputs: supported(unique([code, 'ja', 'en'])),
+    outputs: supported(unique([code, 'ja', 'en'])),
   };
   const lm = getLanguageModel();
-  if (!lm) return NANO_FALLBACK_LANGUAGES;
+  if (!lm || preferred.outputs.length === 0) return NANO_FALLBACK_LANGUAGES;
   try {
     const result = await lm.availability({
       expectedInputs: [{ type: 'text', languages: preferred.inputs }],
