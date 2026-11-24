@@ -18,20 +18,53 @@ jobs:
       with:
         fetch-depth: 0
 
-    # 2) Detect the most recent *stable* tag (skip 'next' and pre-releases like -rc)
+    # 2) Detect the most recent *stable* tag (skip 'next' and pre-releases like -rc).
+    #    Repositories without a stable tag yet (e.g. forks) fall back to the previous
+    #    'next' build, or to the first commit on the very first run, instead of failing.
     - name: Determine last stable tag
       id: tag
       run: |
-        last_tag=$(git describe --tags --abbrev=0 \
-                   $(git rev-list --tags --no-walk --exclude='next' --exclude='*-rc*' --max-count=1))
+        last_tag="$(
+          git for-each-ref --merged HEAD --sort=-creatordate \
+            --format='%(refname:short)' refs/tags \
+            | grep -vE '^next$|-rc' \
+            | head -n 1 || true
+        )"
+
+        full_history="false"
+
+        if [ -z "$last_tag" ]; then
+          if git show-ref --verify --quiet refs/tags/next; then
+            # No stable tag yet: show the changes since the previous nightly build.
+            last_tag="next"
+            echo "No stable tag found; using the previous 'next' build as the base."
+          else
+            # Very first run in this repository: cover the whole history.
+            last_tag="$(git rev-list --max-parents=0 HEAD | tail -n 1)"
+            full_history="true"
+            echo "No tags found; using the first commit ($last_tag) as the base."
+          fi
+        else
+          echo "Last stable tag: $last_tag"
+        fi
+
         echo "last_tag=$last_tag" >>"$GITHUB_OUTPUT"
+        echo "full_history=$full_history" >>"$GITHUB_OUTPUT"
 
     # 3) Generate release notes between the last tag and HEAD
     - name: Generate release notes
       id: notes
+      env:
+        LAST_TAG: ${{ steps.tag.outputs.last_tag }}
+        FULL_HISTORY: ${{ steps.tag.outputs.full_history }}
       run: |
-        git log "${{ steps.tag.outputs.last_tag }}"..HEAD \
-                --pretty=format:'* %s (%h)' --reverse > RELEASE_NOTES.md
+        if [ "$FULL_HISTORY" = "true" ]; then
+          # First run: GitHub caps release bodies at 125k characters, so keep the
+          # notes to the most recent commits instead of dumping the whole history.
+          git log HEAD -n 500 --pretty=format:'* %s (%h)' --reverse > RELEASE_NOTES.md
+        else
+          git log "${LAST_TAG}..HEAD" --pretty=format:'* %s (%h)' --reverse > RELEASE_NOTES.md
+        fi
         echo "notes_path=RELEASE_NOTES.md" >>"$GITHUB_OUTPUT"
 
     # 4) Create or update the 'next' prerelease
