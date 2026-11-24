@@ -51,10 +51,10 @@ test('generated templates use published dependency ranges', async () => {
     const packageJson = JSON.parse(
       await readFile(path.join(templateRoot, template, 'package.json'), 'utf8'),
     );
-    assert.equal(packageJson.dependencies['@aituber-onair/core'], '^0.26.30');
+    assert.equal(packageJson.dependencies['@aituber-onair/core'], '^0.26.31');
     assert.equal(
       packageJson.dependencies['@aituber-onair/comment-intelligence'],
-      '^0.0.8',
+      '^0.0.9',
     );
     assert.equal(packageJson.dependencies['@aituber-onair/manneri'], '^0.4.0');
   }

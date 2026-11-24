@@ -1,8 +1,18 @@
 # Live2D Chat
 
-### Chat 0.71.0
+### Chat 0.72.0
 
-Core 0.26.30 uses published Chat 0.71.0 and Voice 0.30.0.
+Core 0.26.31 uses published Chat 0.72.0 and Voice 0.30.0.
+Native OpenAI GPT-6.2 Sol (`gpt-6.2-sol`) and GPT-6.2 Astra (`gpt-6.2-astra`)
+are explicit image-capable options. Reasoning starts at `low`; only `low` and
+`medium` are exposed, and other saved levels are normalized to that range.
+Responses is the default endpoint and is required for tools and MCP. Tool-free
+Chat Completions remains available; custom endpoints with tools fail before
+sending. Mistral-hosted DeepSeek V4.1 Flash 1017 (`deepseek-v4-1-flash-1017`)
+is an explicit public-preview option with image input, streaming, and tools;
+no reasoning control is sent because none is documented. Mistral tool calls
+now continue correctly in follow-up requests. Provider defaults are unchanged.
+
 Gemini 4 models (currently Argon, Carbon, and Hydrogen) are explicit,
 image-capable choices with mandatory thinking. Select `low` (package default),
 `medium`, or `high`; provider default models are unchanged.
@@ -64,7 +74,7 @@ Providers whose APIs must not be called directly from this browser example are
 shown disabled: currently Sakana AI and Sarashina. Sarashina API keys must stay
 on a protected backend; use a Node/backend integration.
 
-Core 0.26.30 uses published Chat 0.71.0 and Voice 0.30.0. Select
+Core 0.26.31 uses published Chat 0.72.0 and Voice 0.30.0. Select
 `deepseek-flash` for DeepSeek-V4.1-Flash-1017; this rolling API ID follows
 provider updates. Fish Audio's Model selector includes `drama-3` and
 `drama-3-preview` for one-shot, single-speaker speech. The preview may change;
@@ -232,6 +242,10 @@ the extracted `live2dcubismcore.min.js` at the path above.
   https://docs.live2d.com/en/cubism-sdk-manual/cubism-sdk-for-web/
 
 This example targets Cubism 4 models, so `live2d.min.js` is not required.
+
+Models with many clipping masks, including models distributed for VTube Studio,
+are supported by automatically allocating extra mask buffers when the model
+has more than 36 masks. Models with 36 or fewer masks keep the default buffer.
 
 The example expects the whole model folder, including the `.model3.json` file
 and every referenced asset beneath it.
@@ -474,7 +488,7 @@ Deepgram offers Haley (English) and Ayumi, Hayato, Nozomi, and Sayaka (Japanese)
 
 ### Sarashina and reasoning defaults
 
-This example uses Core 0.26.30 with Chat 0.71.0 and Voice 0.30.0. Sarashina is
+This example uses Core 0.26.31 with Chat 0.72.0 and Voice 0.30.0. Sarashina is
 shown but disabled for new browser selections, like Sakana AI. Saved provider,
 model and key values remain intact. The backend provider offers text-only
 `sarashina3-nano` (default), `sarashina3-mini`, and `sarashina3.2-mini-thinking`;

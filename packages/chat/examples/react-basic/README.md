@@ -125,7 +125,7 @@ built-in model status is `available`.
 ### Provider-Specific Features
 
 **OpenAI**
-- Models: GPT-6.1 Terra, GPT-6.1 Sol, GPT-6 Astra, GPT-6 Sol, GPT-6 Luna, GPT-5.6 (Sol/Terra/Luna), GPT-5.5, GPT-5.4 Pro, GPT-5.4, GPT-5.4 Mini
+- Models: GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, GPT-6.1 Sol, GPT-6 Astra, GPT-6 Sol, GPT-6 Luna, GPT-5.6 (Sol/Terra/Luna), GPT-5.5, GPT-5.4 Pro, GPT-5.4, GPT-5.4 Mini
 - Default: GPT-5.6 Luna. Models that OpenAI has deprecated or shut down (GPT-4o, GPT-4o Mini, GPT-4.1, GPT-4.1 Mini, GPT-5, GPT-5 Mini/Nano, GPT-5.1, GPT-5.4 Nano, GPT-4.1 Nano, o1, o1-mini, o3-mini) are no longer selectable.
 - Verbosity: defaults to `low` for concise replies, including after switching providers. Select `medium` or `high` for more detail, or choose a GPT-5 preset to use its verbosity setting.
 - Vision: Current image-capable OpenAI models
@@ -314,9 +314,11 @@ rolling ID for the October 17, 2026 update; it follows future provider updates
 as well. Search/Fetch APIs are not exposed by this example.
 
 **Mistral**
-- Models: Mistral Small Latest, Ministral 3 3B/8B/14B, Mistral Large Latest/4, Mistral Small 2603, GLM-5.3 (Mistral), GLM-5.3 Flash (Mistral)
+- Models: Mistral Small Latest, Ministral 3 3B/8B/14B, Mistral Large Latest/4, Mistral Small 2603, GLM-5.3 (Mistral), GLM-5.3 Flash (Mistral), DeepSeek V4.1 Flash 1017 (Mistral Preview)
 - Vision: Supported, including GLM-5.3 Flash; the existing GLM-5.3 option remains text-only.
 - GLM-5.3 Flash (`zai-glm-5-3-flash`) is explicit and uses `low` reasoning by default, with `high` and `max` available. `none` is not supported. The provider default remains Mistral Small Latest. The [official model page](https://docs.mistral.ai/models/zai-glm-5-3-flash.md) documents image input and Chat Completions; the [reasoning guide](https://docs.mistral.ai/inference/conversations/reasoning) lists its effort values.
+- DeepSeek V4.1 Flash 1017 (`deepseek-v4-1-flash-1017`) is a public-preview option hosted by Mistral with text/image input, streaming, and tools. Select it under **Mistral** and supply a Mistral API key. No reasoning control is shown or sent because model-specific settings are not documented for this route; direct DeepSeek settings do not apply. See the [official model card](https://docs.mistral.ai/models/deepseek-v4-flash-1017). The default remains Mistral Small Latest.
+- Mistral Large 4 is generally available; its existing package reasoning behavior is unchanged.
 - Best for: Mistral Chat Completions with streaming and optional adjustable reasoning
 
 **PLaMo**
@@ -481,6 +483,20 @@ available at every supported effort. Tools and MCP require Responses at the
 standard endpoint, and custom endpoints reject tools before sending. Sampling
 fields are not sent. The OpenRouter variant defaults to None effort and uses
 Chat Completions. Existing provider defaults are preserved.
+
+Models that require Responses for tools use it by default. Native GPT-6.2 Sol
+(`gpt-6.2-sol`, `MODEL_GPT_6_2_SOL`) and Astra (`gpt-6.2-astra`,
+`MODEL_GPT_6_2_ASTRA`) are explicit text/image options with streaming and function
+calling. Use an OpenAI API key; the provider default model is unchanged.
+The package exposes the migration guide's documented `low` and `medium` effort
+settings, defaulting to `low` for conversational latency. `none`/`minimal` map
+to `low`; higher settings map to `medium` pending model-specific confirmation.
+Tool-free requests may use Chat Completions. Tools/MCP require Responses;
+custom endpoints with tools fail before sending rather than redirecting keys.
+Sampling parameters are omitted. Tests use mocked transports, not live inference.
+See the [Sol model](https://developers.openai.com/api/docs/models/gpt-6.2-sol),
+[Astra model](https://developers.openai.com/api/docs/models/gpt-6.2-astra), and
+[migration guide](https://developers.openai.com/api/docs/guides/latest-model).
 
 GPT-6.1 Sol defaults to low reasoning and Responses. Its tools require Responses;
 Chat Completions is available only without tools. Unsupported none/minimal
