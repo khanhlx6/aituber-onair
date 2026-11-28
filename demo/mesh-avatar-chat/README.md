@@ -29,6 +29,11 @@ published to GitHub Pages.
   takes over once it is ready. Phones and metered
   connections are not downloaded to automatically; a link starts the download
   instead.
+- Captions: the spoken reply appears over the avatar during playback, including
+  when replaying a message. Use the **Captions** button under the avatar to
+  show or hide it. Long replies can be scrolled. This displays the full spoken
+  reply, not word-by-word timing; when voice playback is off, replies remain in
+  the chat panel rather than the overlay.
 - Speaker controls: each reply has a 🔊 button to hear it again, and the
   speaker panel ("Ẩn loa / Hiện loa") adds pause/resume, replay, stop and live
   volume and speed sliders.
@@ -61,6 +66,8 @@ cd demo/mesh-avatar-chat
 npm install
 PIPER_MODEL_DIR=/path/to/miko-piper-plus-model npm run fetch-piper-assets   # optional
 npm run dev
+# Optional: run the caption playback tests
+npm test
 ```
 
 `fetch-piper-assets` downloads the piper-plus runtime and dictionary from a

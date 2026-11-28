@@ -52,6 +52,7 @@ export default function App() {
     envelope,
   });
   const [started, setStarted] = useState(false);
+  const [showCaptions, setShowCaptions] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [emotion, setEmotion] = useState<{ tag: string; seq: number } | null>(
     null,
@@ -343,17 +344,32 @@ export default function App() {
           aria-label={strings.app.avatar}
           data-speaking={isSpeaking ? 'true' : 'false'}
         >
-          <MeshAvatarCanvas
-            voiceLevel={voiceLevel}
-            isSpeaking={isSpeaking}
-            emotion={emotion}
-          />
+          <div className="avatar-display">
+            <MeshAvatarCanvas
+              voiceLevel={voiceLevel}
+              isSpeaking={isSpeaking}
+              emotion={emotion}
+            />
+            {showCaptions && tts.speechCaption && (
+              <div className="speech-caption" aria-hidden="true">
+                {tts.speechCaption}
+              </div>
+            )}
+          </div>
           <div className="voice-toggle-row">
             <FreeVoiceToggle
               lang={lang}
               enabled={settings.tts.enabled}
               onChange={handleVoiceEnabledChange}
             />
+            <button
+              type="button"
+              className="caption-toggle"
+              aria-pressed={showCaptions}
+              onClick={() => setShowCaptions((visible) => !visible)}
+            >
+              {strings.voice.captions}
+            </button>
           </div>
           <VoiceStage
             lang={lang}

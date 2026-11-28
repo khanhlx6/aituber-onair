@@ -172,6 +172,8 @@ export function useTts({
   const [speechRate, setSpeechRateState] = useState(1);
   const [speechPaused, setSpeechPaused] = useState(false);
   const [hasReplay, setHasReplay] = useState(false);
+  /** The current spoken reply, shown until playback finishes or is stopped. */
+  const [speechCaption, setSpeechCaption] = useState('');
   const volumeRef = useRef(1);
   const rateRef = useRef(1);
   const pausedRef = useRef(false);
@@ -255,6 +257,7 @@ export function useTts({
     speakSeqRef.current += 1;
     pausedRef.current = false;
     setSpeechPaused(false);
+    setSpeechCaption('');
     activeEngineRef.current = null;
     // A paused synthesizer refuses to start the next utterance; unpause first.
     try {
@@ -294,31 +297,44 @@ export function useTts({
             Math.max(0.7, (options.piperSpeed ?? 1) * rateRef.current),
           ),
         );
-        const chunks = splitSentences(message);
-        let next = piper.fetchAudio({ style: 'talk', message: chunks[0] }, '');
-        for (let i = 0; i < chunks.length; i++) {
-          const buffer = await next;
-          if (seq !== speakSeqRef.current) return;
-          if (i + 1 < chunks.length) {
-            next = piper.fetchAudio(
-              { style: 'talk', message: chunks[i + 1] },
-              '',
-            );
+        try {
+          const chunks = splitSentences(message);
+          let next = piper.fetchAudio(
+            { style: 'talk', message: chunks[0] },
+            '',
+          );
+          for (let i = 0; i < chunks.length; i++) {
+            const buffer = await next;
+            if (seq !== speakSeqRef.current) return;
+            if (i + 1 < chunks.length) {
+              next = piper.fetchAudio(
+                { style: 'talk', message: chunks[i + 1] },
+                '',
+              );
+            }
+            // Honor a pause between chunks too, not just mid-buffer.
+            while (pausedRef.current && seq === speakSeqRef.current) {
+              await new Promise((resolve) => window.setTimeout(resolve, 120));
+            }
+            if (seq !== speakSeqRef.current) return;
+            setSpeechCaption(message);
+            await playRef.current(buffer, volumeRef.current);
+            if (seq !== speakSeqRef.current) return;
           }
-          // Honor a pause between chunks too, not just mid-buffer.
-          while (pausedRef.current && seq === speakSeqRef.current) {
-            await new Promise((resolve) => window.setTimeout(resolve, 120));
+        } catch (error) {
+          console.warn('Piper speech failed:', error);
+        } finally {
+          if (seq === speakSeqRef.current) {
+            activeEngineRef.current = null;
+            setSpeechCaption('');
           }
-          if (seq !== speakSeqRef.current) return;
-          await playRef.current(buffer, volumeRef.current);
-          if (seq !== speakSeqRef.current) return;
         }
-        if (seq === speakSeqRef.current) activeEngineRef.current = null;
         return;
       }
 
       if (!webSpeechAvailable) return;
       activeEngineRef.current = 'web';
+      setSpeechCaption(message);
       const voice = pickVoiceFor(options.lang, voices, options.webSpeechVoice);
       envelopeRef.current.start();
       // Browsers without a usable voice may never fire `end`; stop the mouth
@@ -327,6 +343,10 @@ export function useTts({
       let timer = 0;
       const timeout = new Promise<void>((resolve) => {
         timer = window.setTimeout(() => {
+          if (seq !== speakSeqRef.current) {
+            resolve();
+            return;
+          }
           try {
             getWeb().stopSpeaking();
           } catch {
@@ -356,6 +376,7 @@ export function useTts({
         if (seq === speakSeqRef.current) {
           envelopeRef.current.stop();
           activeEngineRef.current = null;
+          setSpeechCaption('');
         }
       }
     },
@@ -438,6 +459,7 @@ export function useTts({
     pause,
     resume,
     speechPaused,
+    speechCaption,
     speechVolume,
     setSpeechVolume,
     speechRate,

@@ -55,4 +55,5 @@ function localWhisperWorker(): Plugin {
 export default defineConfig({
   base: process.env.VITE_BASE_PATH || '/',
   plugins: [react(), localWhisperWorker()],
+  server: { allowedHosts: ['.e2b.app'] },
 });

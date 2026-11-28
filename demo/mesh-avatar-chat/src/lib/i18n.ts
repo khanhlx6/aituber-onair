@@ -76,6 +76,7 @@ const ja = {
     mikoJaOnly: 'ミコの声は日本語専用のため、日本語モードでのみ使えます。',
     webOnlyNote: '日本語以外のモードではブラウザ標準の声を使います。',
     freeVoiceToggle: '開いているブラウザの無料の声',
+    captions: '字幕',
     panelShow: 'スピーカーを表示',
     panelHide: 'スピーカーを隠す',
     speakingNow: 'AIが話しています',
@@ -305,6 +306,7 @@ const vi: Strings = {
     webOnlyNote:
       'Ở chế độ tiếng Việt, mình dùng giọng của trình duyệt (Web Speech API) nhé.',
     freeVoiceToggle: 'Giọng nói miễn phí của tùy trình duyệt đang mở',
+    captions: 'Phụ đề',
     panelShow: 'Hiện loa',
     panelHide: 'Ẩn loa',
     speakingNow: 'AI đang nói',
@@ -541,6 +543,7 @@ const en: Strings = {
     webOnlyNote:
       "Miko's voice speaks Japanese only, so this language uses the browser voice (Web Speech API).",
     freeVoiceToggle: 'Free voice of the browser you are using',
+    captions: 'Captions',
     panelShow: 'Show speaker',
     panelHide: 'Hide speaker',
     speakingNow: 'AI is speaking',
