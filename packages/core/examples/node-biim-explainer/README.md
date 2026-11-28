@@ -33,12 +33,14 @@ npm run validate -- samples/biim-hello-sine.json
 npm run plan -- samples/biim-hello-sine.json --estimate
 npm run preview -- samples/biim-hello-sine.json --at 0 --at @speed --out work/preview
 npm run gen -- samples/biim-hello-sine.json --out work/hello.mp4
+npm run captions -- samples/biim-hello-sine.json --estimate --out work/hello
 ```
 
 Build generates an original four-second test-pattern video and a shapes image in
 `work/`; no game footage is bundled. The sine sample produces tones rather than
 Japanese speech and needs no API key or speech server. Output includes
-`hello.mp4`, `hello.mixed.wav`, and `hello.timeline.json`. `work/` is ignored.
+`hello.mp4`, `hello.mixed.wav`, `hello.timeline.json`, and the `hello.srt` /
+`hello.vtt` caption sidecars. `work/` is ignored.
 
 ## Commands
 
@@ -50,11 +52,27 @@ Japanese speech and needs no API key or speech server. Output includes
 | `plan script.json --json --out work/plan.json` | Print JSON and optionally save it. The `estimated` field distinguishes approximate timing. |
 | `preview script.json --at 12.5 --at @intro-2:end --out work/preview` | Save PNG frames; repeated `--at` accepts seconds or anchors. Optional `--estimate` skips TTS. |
 | `gen script.json --out work/out.mp4` | Encode H.264/AAC MP4, mixed mono 48 kHz WAV, and timeline JSON. |
+| `captions script.json --out work/out` | Write `out.srt` and `out.vtt` from the rendered subtitle pages. `--format srt`/`vtt`/`ass` selects one, `both` selects SRT and VTT (default), and `all` selects all three. `--names` prefixes the speaker name; `--estimate` skips TTS. |
 
 All commands run via `npm run <command> -- ...`. For JSON-only stdout use
 `node dist/gen.js plan samples/biim-hello-sine.json --estimate --json`.
 Paths in a script are relative to that script. CLI `--out` is relative to the
-working directory. Preview times must be within `[0, duration)`.
+working directory. Preview times must be within `[0, duration)`. Without
+`--out`, `captions` writes next to the script `output` path with the extension
+replaced, so `../work/out.mp4` becomes `../work/out.srt` and `.vtt`.
+
+For an ASS sidecar, run:
+
+```bash
+npm run captions -- samples/biim-hello-sine.json --estimate --format ass --out work/hello
+```
+
+Use `--format all` for all three formats. ASS uses a basic bottom-centered white style with a black outline,
+not the video's bubble layout or speaker colors. It requests Noto Sans CJK JP;
+players may substitute another font. ASS timestamps have 10 ms precision:
+rounding and the minimum 10 ms event duration may shift cue boundaries,
+especially for very short cues. Literal `\`, `{`, and `}` in ASS text are
+replaced by visually similar fullwidth characters to prevent ASS control tags.
 
 Validation cannot know the duration of unsynthesized speech. `plan` and `gen`
 check every resolved overlap using the actual audio. An estimate can flag an

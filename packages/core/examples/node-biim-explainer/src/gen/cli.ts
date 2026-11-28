@@ -2,6 +2,13 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  timelineCues,
+  toAss,
+  toSrt,
+  toVtt,
+  type CaptionFormat,
+} from '../captions.js';
 import { createCompositor } from '../compositor.js';
 import { mixAudio, prepareVideos, resolveMedia } from '../media.js';
 import { loadScript } from '../schema.js';
@@ -14,25 +21,35 @@ import { assertFfmpeg, encodeMp4, writeFrame } from './ffmpeg.js';
 export async function runCli(args: string[]) {
   const [command, filename, ...flags] = args;
   if (
-    !['validate', 'plan', 'preview', 'gen'].includes(command) ||
+    !['validate', 'plan', 'preview', 'gen', 'captions'].includes(command) ||
     !filename ||
     filename.startsWith('-')
   )
     throw new Error(
-      'Usage: gen.js validate|plan|preview|gen script.json [--out path] [--at seconds|@id] [--estimate] [--json] [--chars-per-second 8] [--voice-cache dir]',
+      'Usage: gen.js validate|plan|preview|gen|captions script.json [--out path] [--at seconds|@id] [--estimate] [--json] [--chars-per-second 8] [--voice-cache dir] [--format srt|vtt|ass|both|all] [--names]',
     );
   let output: string | undefined;
   let voiceCache = 'work/voice-cache';
   let estimate = false;
   let json = false;
   let charsPerSecond = 8;
+  let format: CaptionFormat = 'both';
+  let formatSpecified = false;
+  let names = false;
   const at: string[] = [];
   for (let i = 0; i < flags.length; i++) {
     const flag = flags[i];
     if (flag === '--estimate') estimate = true;
     else if (flag === '--json') json = true;
+    else if (flag === '--names') names = true;
     else if (
-      ['--out', '--at', '--chars-per-second', '--voice-cache'].includes(flag)
+      [
+        '--out',
+        '--at',
+        '--chars-per-second',
+        '--voice-cache',
+        '--format',
+      ].includes(flag)
     ) {
       const value = flags[++i];
       if (!value || value.startsWith('--'))
@@ -40,15 +57,23 @@ export async function runCli(args: string[]) {
       if (flag === '--out') output = value;
       else if (flag === '--voice-cache') voiceCache = value;
       else if (flag === '--at') at.push(value);
-      else charsPerSecond = Number(value);
+      else if (flag === '--chars-per-second') charsPerSecond = Number(value);
+      else {
+        if (!['srt', 'vtt', 'ass', 'both', 'all'].includes(value))
+          throw new Error('--format must be srt, vtt, ass, both or all');
+        format = value as CaptionFormat;
+        formatSpecified = true;
+      }
     } else throw new Error(`Unknown option ${flag}`);
   }
   if (!Number.isFinite(charsPerSecond) || charsPerSecond <= 0)
     throw new Error('--chars-per-second must be positive');
   if (command === 'gen' && estimate)
     throw new Error(
-      'gen requires actual audio; --estimate is for plan/preview',
+      'gen requires actual audio; --estimate is for plan/preview/captions',
     );
+  if (command !== 'captions' && (formatSpecified || names))
+    throw new Error('--format and --names are only valid for captions');
   const { script, baseDir } = await loadScript(filename);
   if (command === 'validate') {
     console.log(
@@ -85,9 +110,13 @@ export async function runCli(args: string[]) {
     };
     const target = path.resolve(
       output ??
-        (command === 'preview'
-          ? 'work/preview'
-          : path.resolve(baseDir, script.output ?? '../work/out.mp4')),
+        (command === 'captions'
+          ? path
+              .resolve(baseDir, script.output ?? '../work/out.mp4')
+              .replace(/\.[^.\\/]+$/, '')
+          : command === 'preview'
+            ? 'work/preview'
+            : path.resolve(baseDir, script.output ?? '../work/out.mp4')),
     );
     const audio = `${target.replace(/\.[^.\/]+$/, '')}.mixed.wav`;
     const config: RenderConfig = {
@@ -130,6 +159,41 @@ export async function runCli(args: string[]) {
         await writeFile(file, frame.png());
         console.log(file);
       }
+    } else if (command === 'captions') {
+      await mkdir(path.dirname(target), { recursive: true });
+      const cues = timelineCues(
+        timeline,
+        names
+          ? {
+              names: Object.fromEntries(
+                Object.entries(script.speakers).map(([key, speaker]) => [
+                  key,
+                  speaker.name,
+                ]),
+              ),
+            }
+          : {},
+      );
+      const files: string[] = [];
+      if (['srt', 'both', 'all'].includes(format)) {
+        const file = `${target}.srt`;
+        await writeFile(file, toSrt(cues));
+        files.push(file);
+      }
+      if (['vtt', 'both', 'all'].includes(format)) {
+        const file = `${target}.vtt`;
+        await writeFile(file, toVtt(cues));
+        files.push(file);
+      }
+      if (format === 'ass' || format === 'all') {
+        const file = `${target}.ass`;
+        await writeFile(file, toAss(cues, timeline));
+        files.push(file);
+      }
+      for (const file of files) console.log(file);
+      console.log(
+        `Wrote ${cues.length} cues from ${timeline.estimated ? 'estimated' : 'actual'} timing.`,
+      );
     } else {
       await mkdir(path.dirname(target), { recursive: true });
       await mixAudio(script, timeline, narration, baseDir, temporary, audio);
