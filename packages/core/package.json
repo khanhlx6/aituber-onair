@@ -1,6 +1,7 @@
 {
   "name": "@aituber-onair/core",
-  "version": "0.26.31",
+  "version": "0.26.33",
+  "type": "module",
   "description": "Core library for AITuber OnAir providing voice synthesis and chat processing",
   "main": "dist/index.js",
   "module": "dist/index.js",
@@ -35,8 +36,8 @@
     "directory": "packages/core"
   },
   "dependencies": {
-    "@aituber-onair/chat": "^0.72.0",
-    "@aituber-onair/voice": "^0.30.0"
+    "@aituber-onair/chat": "^0.73.0",
+    "@aituber-onair/voice": "^0.31.0"
   },
   "peerDependencies": {
     "@pixiv/three-vrm": "^1.0.9"

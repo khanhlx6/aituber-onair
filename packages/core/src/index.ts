@@ -4,7 +4,7 @@
  */
 
 // Type definitions exports
-export * from './types';
+export * from './types/index.js';
 
 // Chat exports (re-exported from @aituber-onair/chat for backward compatibility)
 export {
@@ -149,6 +149,7 @@ export {
   MODEL_GEMINI_3_8_FLASH,
   MODEL_GEMINI_4_ARGON,
   MODEL_GEMINI_4_CARBON,
+  MODEL_GEMINI_4_NEON,
   MODEL_GEMINI_4_HYDROGEN,
   MODEL_GEMINI_3_7_FLASH,
   MODEL_GEMINI_3_6_FLASH,
@@ -363,6 +364,8 @@ export {
   MODEL_OPENAI_GPT_MINI_LATEST,
   MODEL_OPENAI_GPT_5_6_SOL,
   MODEL_OPENAI_GPT_6_1_SOL,
+  MODEL_OPENAI_GPT_6_2_SOL,
+  MODEL_OPENAI_GPT_6_2_ASTRA,
   MODEL_OPENAI_GPT_6_SOL,
   MODEL_OPENAI_GPT_6_LUNA,
   MODEL_OPENAI_GPT_6_ASTRA,
@@ -374,8 +377,10 @@ export {
   MODEL_GOOGLE_GEMINI_4_ARGON,
   MODEL_GOOGLE_GEMINI_4_CARBON,
   MODEL_GOOGLE_GEMINI_4_HYDROGEN,
+  MODEL_GOOGLE_GEMINI_4_NEON,
   MODEL_META_MUSE_EMBER,
   MODEL_THINKINGMACHINES_INKLING_2_SMALL,
+  MODEL_THINKINGMACHINES_INKLING_2_MINI,
   MODEL_NEX_AGI_NEX_N2_6,
   MODEL_INCLUSIONAI_LING_3_2_FLASH_FREE,
   MODEL_INCLUSIONAI_LING_3_0_FLASH_VL_FREE,
@@ -383,6 +388,7 @@ export {
   MODEL_NEX_AGI_NEX_N2_5_MINI_FREE,
   MODEL_NEX_AGI_NEX_N2_5_PRO_FREE,
   MODEL_QWEN_QWEN_3_8_MAX_0902,
+  MODEL_QWEN_QWEN_4_MAX,
   MODEL_META_MUSE_SPARK_1_3,
   MODEL_OPENAI_GPT_5_6_TERRA,
   MODEL_OPENAI_GPT_5_6_LUNA,
@@ -447,6 +453,7 @@ export {
   MODEL_ZAI_GLM_FLASH_LATEST,
   MODEL_XIAOMI_MIMO_V2_6_PRO,
   MODEL_TENCENT_HY4,
+  MODEL_TENCENT_HY4_FLASH,
   MODEL_COHERE_COMMAND_A_PLUS,
   MODEL_BYTEDANCE_SEED_2_1_TURBO,
   MODEL_NVIDIA_NEMOTRON_3_5_SUPER_VL,
@@ -486,29 +493,29 @@ export {
 } from '@aituber-onair/chat';
 
 // Core module exports
-export { EventEmitter } from './core/EventEmitter';
-export type { MemoryOptions, Summarizer } from './core/MemoryManager';
-export { MemoryManager } from './core/MemoryManager';
-export { OpenAISummarizer } from './services/chat/providers/openai/OpenAISummarizer';
-export { GeminiSummarizer } from './services/chat/providers/gemini/GeminiSummarizer';
-export { ClaudeSummarizer } from './services/chat/providers/claude/ClaudeSummarizer';
-export type { ChatProcessorOptions } from './core/ChatProcessor';
-export { ChatProcessor } from './core/ChatProcessor';
+export { EventEmitter } from './core/EventEmitter.js';
+export type { MemoryOptions, Summarizer } from './core/MemoryManager.js';
+export { MemoryManager } from './core/MemoryManager.js';
+export { OpenAISummarizer } from './services/chat/providers/openai/OpenAISummarizer.js';
+export { GeminiSummarizer } from './services/chat/providers/gemini/GeminiSummarizer.js';
+export { ClaudeSummarizer } from './services/chat/providers/claude/ClaudeSummarizer.js';
+export type { ChatProcessorOptions } from './core/ChatProcessor.js';
+export { ChatProcessor } from './core/ChatProcessor.js';
 export type {
   AITuberOnAirCoreOptions,
   SpeechChunkingOptions,
-} from './core/AITuberOnAirCore';
+} from './core/AITuberOnAirCore.js';
 export {
   AITuberOnAirCore,
   AITuberOnAirCoreEvent,
-} from './core/AITuberOnAirCore';
+} from './core/AITuberOnAirCore.js';
 
 // Constants exports
-export * from './constants';
+export * from './constants/index.js';
 
 // Utility exports
-export * from './utils';
-export { createMemoryStorage } from './utils/storage';
+export * from './utils/index.js';
+export { createMemoryStorage } from './utils/storage.js';
 
 // Voice exports (re-exported from @aituber-onair/voice for backward compatibility)
 export {

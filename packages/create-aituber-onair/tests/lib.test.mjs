@@ -6,6 +6,7 @@ import test from 'node:test';
 import {
   CliError,
   createProject,
+  helpText,
   parseArgs,
   resolveDefaultCoreVersion,
   toPackageName,
@@ -53,7 +54,24 @@ test('template list includes every supported core starter', () => {
     'purupuru',
     'psd',
     'inochi2d',
+    'media-avatar',
+    'mesh-avatar',
+    'single-image-avatar',
   ]);
+});
+
+test('CLI accepts and documents every template', () => {
+  for (const template of TEMPLATE_IDS) {
+    assert.equal(
+      parseArgs(['my-app', '--template', template]).template,
+      template,
+    );
+    assert.equal(
+      parseArgs(['my-app', `--template=${template}`]).template,
+      template,
+    );
+    assert.ok(helpText().includes(template));
+  }
 });
 
 test('parseArgs rejects unknown templates', () => {
@@ -83,7 +101,7 @@ test('createProject copies pngtuber template and rewrites package metadata', asy
   const rootFiles = await readdir(result.projectDir);
 
   assert.equal(packageJson.name, 'my-png-app');
-  assert.equal(packageJson.dependencies['@aituber-onair/core'], '^0.26.31');
+  assert.equal(packageJson.dependencies['@aituber-onair/core'], '^0.26.33');
   assert.equal(packageJson.dependencies['@pixiv/three-vrm'], undefined);
   assert.equal(rootFiles.includes('.gitignore'), true);
   assert.equal(rootFiles.includes('_gitignore'), false);
@@ -154,7 +172,7 @@ test('createProject copies pet template with bundled Miko assets', async () => {
   );
   const petFiles = await readdir(path.join(result.projectDir, 'public', 'pet'));
 
-  assert.equal(packageJson.dependencies['@aituber-onair/core'], '^0.26.31');
+  assert.equal(packageJson.dependencies['@aituber-onair/core'], '^0.26.33');
   assert.equal(
     packageJson.dependencies['@aituber-onair/comment-intelligence'],
     '^0.0.9',
@@ -196,6 +214,55 @@ test('createProject copies each template default avatar', async () => {
   );
   await access(path.join(psd.projectDir, 'MIKO_ASSET_TERMS.md'));
 });
+
+for (const [template, assets] of Object.entries({
+  'media-avatar': [
+    'public/avatar/media/neutral.gif',
+    'public/avatar/media/happy.gif',
+    'public/avatar/media/angry.gif',
+    'public/avatar/media/sad.gif',
+  ],
+  'mesh-avatar': ['public/avatar/miko-qipao.mavatar', 'MIKO_ASSET_TERMS.md'],
+  'single-image-avatar': [
+    'public/avatar/miko-avatar.png',
+    'public/avatar/miko-puppet-avatar.png',
+    'MIKO_ASSET_TERMS.md',
+  ],
+})) {
+  test(`createProject copies ${template} with its bundled assets`, async () => {
+    const cwd = await mkdtemp(path.join(tmpdir(), 'create-aituber-onair-'));
+    const result = await createProject({
+      cwd,
+      targetDir: `${template}-app`,
+      template,
+      install: false,
+      templateRoot: fixtureTemplateRoot,
+    });
+
+    for (const asset of assets) {
+      const source = await readFile(
+        path.resolve('../core/examples', `react-${template}-app`, asset),
+      );
+      assert.deepEqual(
+        await readFile(path.join(result.projectDir, asset)),
+        source,
+      );
+    }
+    await access(path.join(result.projectDir, '.gitignore'));
+    await assert.rejects(access(path.join(result.projectDir, '_gitignore')));
+    if (template === 'media-avatar') {
+      await assert.rejects(
+        access(path.join(result.projectDir, 'MIKO_ASSET_TERMS.md')),
+      );
+    }
+    if (template === 'mesh-avatar') {
+      const packageJson = JSON.parse(
+        await readFile(path.join(result.projectDir, 'package.json'), 'utf8'),
+      );
+      assert.equal(packageJson.dependencies['mesh-avatar'], '^0.2.0');
+    }
+  });
+}
 
 test('createProject keeps the Inochi2D sample model optional', async () => {
   const cwd = await mkdtemp(path.join(tmpdir(), 'create-aituber-onair-'));
@@ -304,5 +371,5 @@ test('createProject allows overriding the core dependency version', async () => 
 });
 
 test('resolveDefaultCoreVersion reads the workspace core package version', async () => {
-  assert.equal(await resolveDefaultCoreVersion(), '0.26.31');
+  assert.equal(await resolveDefaultCoreVersion(), '0.26.33');
 });

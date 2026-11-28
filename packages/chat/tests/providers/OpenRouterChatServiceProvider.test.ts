@@ -12,6 +12,11 @@ import {
   MODEL_BYTEDANCE_SEED_2_1_TURBO,
   MODEL_NVIDIA_NEMOTRON_3_5_SUPER_VL,
   MODEL_OPENROUTER_SAKANA_NAMAZU,
+  MODEL_TENCENT_HY4_FLASH,
+  MODEL_QWEN_QWEN_4_MAX,
+  MODEL_OPENAI_GPT_6_2_SOL,
+  MODEL_OPENAI_GPT_6_2_ASTRA,
+  MODEL_THINKINGMACHINES_INKLING_2_MINI,
   MODEL_OPENAI_GPT_6_1_TERRA,
   MODEL_ANTHROPIC_CLAUDE_HAIKU_5_5,
   MODEL_INCEPTION_MERCURY_3,
@@ -44,6 +49,7 @@ import {
   MODEL_GOOGLE_GEMINI_4_ARGON,
   MODEL_GOOGLE_GEMINI_4_CARBON,
   MODEL_GOOGLE_GEMINI_4_HYDROGEN,
+  MODEL_GOOGLE_GEMINI_4_NEON,
   MODEL_INCLUSIONAI_LING_3_0_FLASH_VL_FREE,
   MODEL_INCEPTION_MERCURY_2_5,
   MODEL_NEX_AGI_NEX_N2_5_MINI_FREE,
@@ -173,7 +179,7 @@ describe('OpenRouterChatServiceProvider', () => {
   });
 
   describe('getSupportedModels', () => {
-    it('preserves existing model order and appends Mistral Large 4 after Pareto', () => {
+    it('preserves existing model order when appending curated entries', () => {
       const models = provider.getSupportedModels();
       expect(Array.isArray(models)).toBe(true);
       expect(models).toEqual([
@@ -197,6 +203,7 @@ describe('OpenRouterChatServiceProvider', () => {
         MODEL_GOOGLE_GEMINI_4_ARGON,
         MODEL_GOOGLE_GEMINI_4_CARBON,
         MODEL_GOOGLE_GEMINI_4_HYDROGEN,
+        MODEL_GOOGLE_GEMINI_4_NEON,
         MODEL_QWEN_QWEN_3_8_MAX_0902,
         MODEL_META_MUSE_SPARK_1_3,
         MODEL_META_MUSE_EMBER,
@@ -277,6 +284,11 @@ describe('OpenRouterChatServiceProvider', () => {
         MODEL_BYTEDANCE_SEED_2_1_TURBO,
         MODEL_NVIDIA_NEMOTRON_3_5_SUPER_VL,
         MODEL_OPENROUTER_SAKANA_NAMAZU,
+        MODEL_TENCENT_HY4_FLASH,
+        MODEL_QWEN_QWEN_4_MAX,
+        MODEL_OPENAI_GPT_6_2_SOL,
+        MODEL_OPENAI_GPT_6_2_ASTRA,
+        MODEL_THINKINGMACHINES_INKLING_2_MINI,
       ]);
     });
 

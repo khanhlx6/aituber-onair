@@ -1,5 +1,42 @@
 # @aituber-onair/core
 
+## 0.26.33
+
+### Patch Changes
+
+- Fix plain Node.js imports of `@aituber-onair/core` and
+  `@aituber-onair/core/agent`. The build now uses explicit `.js` relative
+  specifiers and the package declares `"type": "module"`, so `import` works
+  without a bundler and `require()` works on Node.js versions that support
+  loading ES modules synchronously (#443).
+
+## 0.26.32
+
+### Patch Changes
+
+- Propagate published Chat 0.73.0 and Voice 0.31.0 and re-export Gemini 4
+  Neon for native Gemini (`MODEL_GEMINI_4_NEON`) and OpenRouter
+  (`MODEL_GOOGLE_GEMINI_4_NEON`), plus OpenRouter Hy4 Flash, Qwen4 Max,
+  GPT-6.2 Sol / Astra, and Inkling 2 Mini (`MODEL_TENCENT_HY4_FLASH`,
+  `MODEL_QWEN_QWEN_4_MAX`, `MODEL_OPENAI_GPT_6_2_SOL`,
+  `MODEL_OPENAI_GPT_6_2_ASTRA`, `MODEL_THINKINGMACHINES_INKLING_2_MINI`).
+- Add these models to Basic selectors. Native Neon exposes `low` (default),
+  `medium`, and `high`; OpenRouter routes use their model-specific reasoning
+  profiles. Provider defaults are unchanged.
+- Within one tool-call loop, Core forwards Neon's signed `assistant_message`
+  unchanged on both routes. The chat log keeps only visible reply text, so
+  signed history is not carried across turns or saved logs.
+- Add OpenRouter Qwen3 TTS 1.7B (`qwen/qwen3-tts-1.7b`) to the React TTS
+  examples. When no saved voice is listed, the Japanese preset `ono_anna` is
+  preselected; speed, instructions, and reference audio are not exposed.
+- Refresh Core and example READMEs (EN/JA), embedded example lockfile
+  metadata, and starter version expectations.
+
+### Known Limitations
+
+- No live inference or speech synthesis was performed; provider compatibility
+  follows the published Chat and Voice releases and mocked transport tests.
+
 ## 0.26.31
 
 ### Patch Changes

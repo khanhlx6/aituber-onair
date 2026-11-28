@@ -1,7 +1,8 @@
-import { stripSarashinaReasoning } from '../../../utils/stripSarashinaReasoning';
-import { ChatService } from '../../ChatService';
-import { Message, MessageWithVision } from '../../../types';
-import { ToolDefinition, ToolChatCompletion } from '../../../types';
+import { getNeonHistory, NEON_HISTORY } from '../../../utils/neonHistory.js';
+import { stripSarashinaReasoning } from '../../../utils/stripSarashinaReasoning.js';
+import { ChatService } from '../../ChatService.js';
+import { Message, MessageWithVision } from '../../../types/index.js';
+import { ToolDefinition, ToolChatCompletion } from '../../../types/index.js';
 import {
   MODEL_UNBIASED_PARETO_26_9,
   MODEL_UNBIASED_PARETO_26_10,
@@ -22,6 +23,7 @@ import {
   MODEL_META_MUSE_SPARK_1_3,
   MODEL_META_MUSE_EMBER,
   MODEL_THINKINGMACHINES_INKLING_2_SMALL,
+  MODEL_THINKINGMACHINES_INKLING_2_MINI,
   MODEL_UPSTAGE_SOLAR_PRO4,
   MODEL_UPSTAGE_SOLAR_MINI4,
   MODEL_OPENAI_GPT_5_MINI,
@@ -30,6 +32,7 @@ import {
   MODEL_GOOGLE_GEMINI_4_ARGON,
   MODEL_GOOGLE_GEMINI_4_CARBON,
   MODEL_GOOGLE_GEMINI_4_HYDROGEN,
+  MODEL_GOOGLE_GEMINI_4_NEON,
   MODEL_OPENROUTER_SAKANA_NAMAZU,
   MODEL_GOOGLE_GEMINI_3_5_FLASH_LITE,
   getDefaultOpenRouterReasoningEffort,
@@ -37,19 +40,19 @@ import {
   isOpenRouterVisionModel,
   isOpenRouterFreeModel,
   OPENROUTER_FREE_RATE_LIMIT_PER_MINUTE,
-} from '../../../constants/openrouter';
+} from '../../../constants/openrouter.js';
 import {
   ChatResponseLength,
   getMaxTokensForResponseLength,
-} from '../../../constants/chat';
-import { ChatServiceHttpClient } from '../../../utils/chatServiceHttpClient';
+} from '../../../constants/chat.js';
+import { ChatServiceHttpClient } from '../../../utils/chatServiceHttpClient.js';
 import {
   buildOpenAICompatibleTools,
   parseOpenAICompatibleOneShot,
   parseOpenAICompatibleTextStream,
   parseOpenAICompatibleToolStream,
   processChatWithOptionalTools,
-} from '../../../utils';
+} from '../../../utils/index.js';
 
 const isOpenRouterAutoModel = (model: string): boolean =>
   [MODEL_OPENROUTER_AUTO, MODEL_OPENROUTER_AUTO_BETA].includes(model.trim());
@@ -201,7 +204,10 @@ export class OpenRouterChatService implements ChatService {
   async processChat(
     messages: Message[],
     onPartialResponse: (text: string) => void,
-    onCompleteResponse: (text: string) => Promise<void>,
+    onCompleteResponse: (
+      text: string,
+      completion?: ToolChatCompletion,
+    ) => Promise<void>,
   ): Promise<void> {
     // Apply rate limiting for free tier
     await this.applyRateLimiting();
@@ -210,7 +216,9 @@ export class OpenRouterChatService implements ChatService {
       hasTools: this.tools.length > 0,
       runWithoutTools: async () => {
         const res = await this.callOpenRouter(messages, this.model, true);
-        return this.handleStream(res, onPartialResponse, this.model);
+        return this.model === MODEL_GOOGLE_GEMINI_4_NEON
+          ? this.parseStream(res, onPartialResponse, this.model)
+          : this.handleStream(res, onPartialResponse, this.model);
       },
       runWithTools: () => this.chatOnce(messages, true, onPartialResponse),
       onCompleteResponse,
@@ -229,7 +237,10 @@ export class OpenRouterChatService implements ChatService {
   async processVisionChat(
     messages: MessageWithVision[],
     onPartialResponse: (text: string) => void,
-    onCompleteResponse: (text: string) => Promise<void>,
+    onCompleteResponse: (
+      text: string,
+      completion?: ToolChatCompletion,
+    ) => Promise<void>,
   ): Promise<void> {
     // Always validate vision capabilities when vision methods are called
     if (!isOpenRouterVisionModel(this.visionModel)) {
@@ -250,7 +261,9 @@ export class OpenRouterChatService implements ChatService {
             this.visionModel,
             true,
           );
-          return this.handleStream(res, onPartialResponse, this.visionModel);
+          return this.visionModel === MODEL_GOOGLE_GEMINI_4_NEON
+            ? this.parseStream(res, onPartialResponse, this.visionModel)
+            : this.handleStream(res, onPartialResponse, this.visionModel);
         },
         runWithTools: () =>
           this.visionChatOnce(messages, true, onPartialResponse),
@@ -364,19 +377,37 @@ export class OpenRouterChatService implements ChatService {
   ): any {
     const body: any = {
       model,
-      messages: stripSarashinaReasoning(messages),
+      messages: stripSarashinaReasoning(messages).map((message) => {
+        const history = getNeonHistory(message);
+        if (
+          model === MODEL_GOOGLE_GEMINI_4_NEON &&
+          message.role === 'assistant' &&
+          history?.route === 'openrouter' &&
+          history.endpoint === this.endpoint
+        ) {
+          return { ...message, reasoning_details: history.details };
+        }
+        return message;
+      }),
       stream,
     };
 
     // Add max_tokens if specified
     const tokenLimit =
       maxTokens !== undefined
-        ? maxTokens
-        : model === MODEL_GOOGLE_GEMINI_4_ARGON ||
-            model === MODEL_GOOGLE_GEMINI_4_CARBON ||
-            model === MODEL_GOOGLE_GEMINI_4_HYDROGEN
-          ? Math.max(32_768, getMaxTokensForResponseLength(this.responseLength))
-          : getMaxTokensForResponseLength(this.responseLength);
+        ? model === MODEL_GOOGLE_GEMINI_4_NEON
+          ? Math.min(maxTokens, 65_536)
+          : maxTokens
+        : model === MODEL_GOOGLE_GEMINI_4_NEON
+          ? 65_536
+          : model === MODEL_GOOGLE_GEMINI_4_ARGON ||
+              model === MODEL_GOOGLE_GEMINI_4_CARBON ||
+              model === MODEL_GOOGLE_GEMINI_4_HYDROGEN
+            ? Math.max(
+                32_768,
+                getMaxTokensForResponseLength(this.responseLength),
+              )
+            : getMaxTokensForResponseLength(this.responseLength);
 
     // Dynamic routers and some reasoning models can spend the whole budget on
     // reasoning tokens before emitting visible content.
@@ -429,6 +460,7 @@ export class OpenRouterChatService implements ChatService {
             model !== MODEL_META_MUSE_SPARK_1_3 &&
             model !== MODEL_META_MUSE_EMBER &&
             model !== MODEL_THINKINGMACHINES_INKLING_2_SMALL &&
+            model !== MODEL_THINKINGMACHINES_INKLING_2_MINI &&
             model !== MODEL_UPSTAGE_SOLAR_PRO4 &&
             model !== MODEL_UPSTAGE_SOLAR_MINI4 &&
             model !== MODEL_OPENAI_GPT_5_MINI &&
@@ -442,8 +474,11 @@ export class OpenRouterChatService implements ChatService {
           body.reasoning.effort = defaultReasoningEffort;
         }
 
-        // Default to exclude reasoning to avoid empty responses unless explicitly requested
-        if (reasoningEffort === 'none' || this.includeReasoning !== true) {
+        // Neon needs reasoning_details for history; they never become visible text.
+        if (
+          model !== MODEL_GOOGLE_GEMINI_4_NEON &&
+          (reasoningEffort === 'none' || this.includeReasoning !== true)
+        ) {
           body.reasoning.exclude = true;
         }
 
@@ -496,13 +531,18 @@ export class OpenRouterChatService implements ChatService {
     onPartial: (t: string) => void,
     model: string,
   ): Promise<ToolChatCompletion> {
+    const preserveNeonHistory = model === MODEL_GOOGLE_GEMINI_4_NEON;
     const completion = await parseOpenAICompatibleToolStream(res, onPartial, {
-      onJsonError: (payload) =>
-        console.debug('Failed to parse SSE data:', payload),
+      preserveAssistantMessage: preserveNeonHistory,
+      preserveReasoningDetails: preserveNeonHistory,
+      onJsonError: (payload) => {
+        if (!preserveNeonHistory)
+          console.debug('Failed to parse SSE data:', payload);
+      },
       throwOnApiError: true,
     });
     ensureAutoRouterOutput(model, hasUsableCompletionOutput(completion));
-    return completion;
+    return this.attachNeonHistory(completion, model);
   }
 
   /**
@@ -510,9 +550,42 @@ export class OpenRouterChatService implements ChatService {
    */
   private parseOneShot(data: any, model: string): ToolChatCompletion {
     const completion = parseOpenAICompatibleOneShot(data, {
+      preserveAssistantMessage: model === MODEL_GOOGLE_GEMINI_4_NEON,
       throwOnApiError: true,
     });
     ensureAutoRouterOutput(model, hasUsableCompletionOutput(completion));
-    return completion;
+    return this.attachNeonHistory(completion, model);
+  }
+
+  private attachNeonHistory(
+    completion: ToolChatCompletion,
+    model: string,
+  ): ToolChatCompletion {
+    const message = completion.assistant_message;
+    if (model !== MODEL_GOOGLE_GEMINI_4_NEON || !message) return completion;
+
+    const details = message.reasoning_details;
+    const toolCalls = message.tool_calls?.map(({ id, type, function: fn }) => ({
+      id,
+      type,
+      function: { name: fn.name, arguments: fn.arguments },
+    }));
+    return {
+      ...completion,
+      assistant_message: {
+        role: 'assistant',
+        content: message.content,
+        ...(toolCalls?.length ? { tool_calls: toolCalls } : {}),
+        ...(Array.isArray(details) && details.length
+          ? {
+              [NEON_HISTORY]: {
+                route: 'openrouter',
+                endpoint: this.endpoint,
+                details,
+              },
+            }
+          : {}),
+      },
+    };
   }
 }

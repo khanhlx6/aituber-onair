@@ -7,6 +7,23 @@ on:
     branches: [ main ]
 
 jobs:
+  release-order:
+    name: Release order (dependency and dependent not bumped together)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Check release order
+        run: node scripts/check-release-order.mjs "origin/${{ github.base_ref }}"
+
   build-and-test:
     runs-on: ubuntu-latest
 
@@ -31,6 +48,11 @@ jobs:
 
       - name: Run tests
         run: npm run test --workspaces
+
+      - name: Check built entry points load in plain Node.js
+        run: |
+          npm run build
+          npm run check:node-esm
 
       - name: Install Voice React example dependencies
         run: npm --prefix packages/voice/examples/react-basic ci

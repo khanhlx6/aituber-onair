@@ -1,5 +1,22 @@
 # @aituber-onair/voice
 
+## 0.31.1
+
+### Patch Changes
+
+- Fix plain Node.js ESM imports of `@aituber-onair/voice`. The ESM build now
+  uses explicit `.js` relative specifiers and ships `dist/esm/package.json`
+  with `"type": "module"`, so `import` works without a bundler (#443).
+
+## 0.31.0
+
+### Minor Changes
+
+- Add explicit OpenRouter `qwen/qwen3-tts-1.7b` support for one-shot MP3
+  synthesis with its published preset voices, including `ono_anna` for
+  Japanese. The React example uses model-scoped voice selection and
+  does not expose reference audio, instructions, or speed controls.
+
 ## 0.30.0
 
 ### Minor Changes

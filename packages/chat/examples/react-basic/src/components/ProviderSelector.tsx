@@ -15,6 +15,7 @@ import {
   MODEL_ZAI_GLM_FLASH_LATEST,
   MODEL_XIAOMI_MIMO_V2_6_PRO,
   MODEL_TENCENT_HY4,
+  MODEL_TENCENT_HY4_FLASH,
   MODEL_COHERE_COMMAND_A_PLUS,
   MODEL_BYTEDANCE_SEED_2_1_TURBO,
   MODEL_NVIDIA_NEMOTRON_3_5_SUPER_VL,
@@ -76,12 +77,16 @@ import {
   MODEL_GEMINI_4_ARGON,
   MODEL_GOOGLE_GEMINI_4_CARBON,
   MODEL_GOOGLE_GEMINI_4_HYDROGEN,
+  MODEL_GOOGLE_GEMINI_4_NEON,
   MODEL_GEMINI_4_CARBON,
   MODEL_GEMINI_4_HYDROGEN,
+  MODEL_GEMINI_4_NEON,
   MODEL_QWEN_QWEN_3_8_MAX_0902,
+  MODEL_QWEN_QWEN_4_MAX,
   MODEL_META_MUSE_SPARK_1_3,
   MODEL_META_MUSE_EMBER,
   MODEL_THINKINGMACHINES_INKLING_2_SMALL,
+  MODEL_THINKINGMACHINES_INKLING_2_MINI,
   MODEL_NEX_AGI_NEX_N2_6,
   MODEL_INCLUSIONAI_LING_3_2_FLASH_FREE,
   MODEL_NVIDIA_NEMOTRON_3_5_LIGHTNING,
@@ -146,6 +151,8 @@ import {
   MODEL_UPSTAGE_SOLAR_MINI4,
   MODEL_XIAOMI_MIMO_V2_6_FLASH,
   MODEL_OPENAI_GPT_6_1_SOL,
+  MODEL_OPENAI_GPT_6_2_SOL,
+  MODEL_OPENAI_GPT_6_2_ASTRA,
   MODEL_OPENAI_GPT_6_SOL,
   MODEL_OPENAI_GPT_6_LUNA,
   MODEL_ANTHROPIC_CLAUDE_SONNET_5_5,
@@ -403,8 +410,20 @@ export const allModels: ProviderModel[] = [
     default: false,
   },
   {
+    id: MODEL_GEMINI_4_NEON,
+    name: 'Gemini 4 Neon',
+    provider: 'gemini',
+    default: false,
+  },
+  {
     id: MODEL_GOOGLE_GEMINI_4_HYDROGEN,
     name: 'Gemini 4 Hydrogen (OpenRouter)',
+    provider: 'openrouter',
+    default: false,
+  },
+  {
+    id: MODEL_GOOGLE_GEMINI_4_NEON,
+    name: 'Gemini 4 Neon (OpenRouter)',
     provider: 'openrouter',
     default: false,
   },
@@ -417,6 +436,12 @@ export const allModels: ProviderModel[] = [
   {
     id: MODEL_THINKINGMACHINES_INKLING_2_SMALL,
     name: 'Inkling 2 Small (OpenRouter)',
+    provider: 'openrouter',
+    default: false,
+  },
+  {
+    id: MODEL_THINKINGMACHINES_INKLING_2_MINI,
+    name: 'Inkling 2 Mini (OpenRouter)',
     provider: 'openrouter',
     default: false,
   },
@@ -531,6 +556,18 @@ export const allModels: ProviderModel[] = [
     default: false,
   },
   {
+    id: MODEL_OPENAI_GPT_6_2_SOL,
+    name: 'GPT-6.2 Sol (OpenRouter)',
+    provider: 'openrouter',
+    default: false,
+  },
+  {
+    id: MODEL_OPENAI_GPT_6_2_ASTRA,
+    name: 'GPT-6.2 Astra (OpenRouter)',
+    provider: 'openrouter',
+    default: false,
+  },
+  {
     id: MODEL_OPENAI_GPT_6_SOL,
     name: 'GPT-6 Sol',
     provider: 'openrouter',
@@ -599,6 +636,12 @@ export const allModels: ProviderModel[] = [
   {
     id: MODEL_QWEN_QWEN_3_8_MAX_0902,
     name: 'Qwen3.8 Max (0902)',
+    provider: 'openrouter',
+    default: false,
+  },
+  {
+    id: MODEL_QWEN_QWEN_4_MAX,
+    name: 'Qwen4 Max',
     provider: 'openrouter',
     default: false,
   },
@@ -1532,6 +1575,12 @@ export const allModels: ProviderModel[] = [
     default: false,
   },
   {
+    id: MODEL_TENCENT_HY4_FLASH,
+    name: 'Hy4 Flash',
+    provider: 'openrouter',
+    default: false,
+  },
+  {
     id: MODEL_COHERE_COMMAND_A_PLUS,
     name: 'Command A+',
     provider: 'openrouter',
@@ -2456,12 +2505,17 @@ export default function ProviderSelector({
                   <input
                     id="openrouter-include-reasoning"
                     type="checkbox"
-                    checked={openrouterIncludeReasoning || false}
+                    checked={
+                      selectedModel === MODEL_GOOGLE_GEMINI_4_NEON ||
+                      openrouterIncludeReasoning ||
+                      false
+                    }
                     onChange={(e) =>
                       onOpenrouterIncludeReasoningChange?.(e.target.checked)
                     }
                     disabled={
                       disabled ||
+                      selectedModel === MODEL_GOOGLE_GEMINI_4_NEON ||
                       !catalogSupportsReasoning(
                         selectedModel,
                         ChatServiceFactory.getSupportedModels(
@@ -2473,7 +2527,9 @@ export default function ProviderSelector({
                   Include Reasoning
                 </label>
                 <span className="helper-text">
-                  Excluding reasoning avoids empty responses
+                  {selectedModel === MODEL_GOOGLE_GEMINI_4_NEON
+                    ? 'Neon reasoning history is used for continuity on this route and is not displayed.'
+                    : 'Excluding reasoning avoids empty responses'}
                 </span>
               </div>
 

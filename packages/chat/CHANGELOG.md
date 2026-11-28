@@ -1,5 +1,32 @@
 # @aituber-onair/chat
 
+## 0.73.1
+
+### Patch Changes
+
+- Fix plain Node.js ESM imports of `@aituber-onair/chat` and
+  `@aituber-onair/chat/agent`. The ESM build now uses explicit `.js` relative
+  specifiers and ships `dist/esm/package.json` with `"type": "module"`, so
+  `import` works without a bundler (#443).
+
+## 0.73.0
+
+### Minor Changes
+
+- Added explicit OpenRouter options for Hy4 Flash, Qwen4 Max, GPT-6.2 Sol,
+  GPT-6.2 Astra, and Inkling 2 Mini, with image input, tool calls, and streaming.
+  Their reasoning settings use the exact OpenRouter model profiles; the
+  provider default is unchanged.
+- Add Gemini 4 Neon as an opt-in native Gemini and OpenRouter Chat model with
+  image input, streaming, tools, and explicit low thinking by default. The
+  OpenRouter route also exposes its catalog-documented `xhigh` level; the native
+  route does not because its REST enum spelling is undocumented. Existing
+  provider and model defaults remain unchanged.
+- Preserve Neon model-part history and signatures through assistant_message;
+  hide thought text from visible replies. Tool calls rebuilt from blocks keep
+  their native function-call signatures within the same service instance. Add
+  mocked transport and React tests.
+
 ## 0.72.0
 
 ### Minor Changes
