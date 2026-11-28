@@ -33,12 +33,13 @@ npm run validate -- samples/biim-hello-sine.json
 npm run plan -- samples/biim-hello-sine.json --estimate
 npm run preview -- samples/biim-hello-sine.json --at 0 --at @speed --out work/preview
 npm run gen -- samples/biim-hello-sine.json --out work/hello.mp4
+npm run captions -- samples/biim-hello-sine.json --estimate --out work/hello
 ```
 
 ビルド時にオリジナルのテストパターン動画（4秒）と図形の画像を`work/`へ生成します。
 ゲーム映像などの素材は同梱していません。sineサンプルは日本語の読み上げではなく
 電子音で、APIキーや音声サーバーは不要です。出力は`hello.mp4`、`hello.mixed.wav`、
-`hello.timeline.json`です。`work/`はGit管理外です。
+`hello.timeline.json`と字幕ファイル`hello.srt`、`hello.vtt`です。`work/`はGit管理外です。
 
 ## コマンド
 
@@ -52,10 +53,17 @@ npm run gen -- samples/biim-hello-sine.json --out work/hello.mp4
 | `plan script.json --json --out work/plan.json` | JSONを表示し、指定があればファイルにも保存。概算は`estimated: true`です。 |
 | `preview script.json --at 12.5 --at @intro-2:end --out work/preview` | 指定時刻のPNGを保存。`--at`は複数指定でき、秒数とアンカーに対応。`--estimate`を付けると音声合成を省略します。 |
 | `gen script.json --out work/out.mp4` | H.264/AACのMP4、48kHz・モノラルの合成WAV、時刻表JSONを生成。 |
+| `captions script.json --out work/out` | 字幕ページから`out.srt`と`out.vtt`を生成。`--format srt` / `vtt` / `ass`で一形式、`both`でSRTとVTT（既定）、`all`で三形式を出力。`--names`で話者名を付け、`--estimate`で音声合成を省略。 |
 
 JSONだけを標準出力に出す場合は、`node dist/gen.js plan samples/biim-hello-sine.json --estimate --json`
 を使ってください。台本内のパスは台本ファイルからの相対パス、`--out`は実行
 ディレクトリからの相対パスです。プレビュー時刻は0以上、動画の終了時刻未満です。
+
+`npm run captions -- samples/biim-hello-sine.json --estimate --format ass --out work/hello`
+でASSを出力できます。ASSのスタイルは画面下中央の白文字・黒縁で、動画の吹き出しや
+話者色を再現しません。フォントはNoto Sans CJK JPを指定し、再生環境で代替されることが
+あります。ASSの時刻は10ミリ秒単位のため、丸めと最短10ミリ秒の制約で境界がずれることが
+あります。ASS制御タグの誤解釈を防ぐため、文字列中の`\`、`{`、`}`は全角に置換します。
 
 `validate`では、未合成の音声の長さまでは分かりません。音声の長さに依存する
 重複は`plan`と`gen`で確定します。概算では実際と異なる重複判定になる場合が
